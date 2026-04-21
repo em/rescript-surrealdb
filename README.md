@@ -56,7 +56,7 @@ The launcher also auto-detects the common local install path `/home/m/.surrealdb
 - Run `npm run changeset` for any user-facing package change.
 - The `release.yml` workflow opens or updates the release PR on `main`.
 - Merging that release PR runs `npm run release` in GitHub Actions and publishes to npm.
-- The repo needs a GitHub Actions secret named `NPM_TOKEN` with publish rights for `rescript-surrealdb`.
+- Publishing is configured for npm trusted publishing from GitHub Actions, so there is no npm token to rotate once the package is linked on npm.
 
 ## Docs
 
