@@ -28,7 +28,7 @@ npm run build
 npm test
 ```
 
-The Vitest suite uses `SURREALDB_TEST_ENDPOINT` when provided, otherwise it prefers an existing local server on `127.0.0.1:8787` and falls back to Docker only when no local server is available.
+The Vitest suite uses `SURREALDB_TEST_ENDPOINT` only when you explicitly provide a disposable test instance. Without that env var, the suite starts its own isolated Docker SurrealDB container, allocates a fresh namespace and database for the run, and tears the container down afterward. It does not auto-attach to arbitrary local SurrealDB servers.
 
 ## Docs
 

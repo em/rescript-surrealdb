@@ -5,6 +5,7 @@ coverage/
 lib/
 src/**/*.mjs
 tests/**/*.mjs
+!tests/support/*.mjs
 
 # Local editor and OS noise
 .DS_Store
