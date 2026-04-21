@@ -2,11 +2,12 @@
   "name": "rescript-surrealdb",
   "version": "0.1.0",
   "description": "ReScript bindings for the public SurrealDB JavaScript SDK",
+  "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/em/rescript-surrealdb#readme",
+  "homepage": "https://github.com/em/rescript-surrealdb",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/em/rescript-surrealdb.git"
+    "url": "git+https://github.com/em/rescript-surrealdb.git"
   },
   "bugs": {
     "url": "https://github.com/em/rescript-surrealdb/issues"
@@ -24,13 +25,17 @@
   "files": [
     "README.md",
     "TYPE_FIDELITY.md",
-    "docs",
+    "docs/design.md",
+    "docs/research.md",
     "rescript.json",
     "src/**/*.js",
     "src/**/*.mjs",
     "src/**/*.res",
     "src/**/*.resi"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "import": "./src/Surrealdb.mjs",
@@ -41,8 +46,11 @@
     "build": "rescript build",
     "clean": "rescript clean",
     "test": "npm run build && vitest run --config vitest.config.js",
+    "test:live": "npm run build && vitest run --config vitest.live.config.js",
+    "test:all": "npm run test && npm run test:live",
     "test:coverage": "npm run build && vitest run --config vitest.config.js --coverage",
-    "test:watch": "vitest --config vitest.config.js"
+    "test:watch": "vitest --config vitest.config.js",
+    "test:live:watch": "vitest --config vitest.live.config.js"
   },
   "dependencies": {
     "@rescript/runtime": "12.2.0",

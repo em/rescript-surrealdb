@@ -1,4 +1,4 @@
-import { startDockerSurreal } from "./dockerSurreal.mjs"
+import { startSurrealTestServer } from "./surrealServer.mjs"
 
 function stringEnv(name, fallback) {
   const value = process.env[name]
@@ -17,7 +17,7 @@ export default async function globalSetup(project) {
     return
   }
 
-  const server = await startDockerSurreal()
+  const server = await startSurrealTestServer()
 
   project.provide("surrealEndpoint", server.endpoint)
   project.provide("surrealNamespace", server.namespace)

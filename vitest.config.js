@@ -1,10 +1,14 @@
 export default {
   test: {
     include: ["tests/**/*.mjs"],
-    exclude: ["tests/TestRuntime.mjs", "tests/SurrealdbTestContext.mjs", "tests/support/**"],
+    exclude: [
+      "tests/TestRuntime.mjs",
+      "tests/SurrealdbTestContext.mjs",
+      "tests/support/**",
+      "tests/connection/**",
+    ],
     environment: "node",
     fileParallelism: false,
-    globalSetup: ["./tests/support/globalSetup.mjs"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.mjs"],

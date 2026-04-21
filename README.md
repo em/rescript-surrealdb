@@ -34,9 +34,21 @@ npm install surrealdb rescript-surrealdb
 npm install
 npm run build
 npm test
+npm run test:live
 ```
 
-The Vitest suite uses `SURREALDB_TEST_ENDPOINT` only when you explicitly provide a disposable test instance. Without that env var, the suite starts its own isolated Docker SurrealDB container, allocates a fresh namespace and database for the run, and tears the container down afterward. It does not auto-attach to arbitrary local SurrealDB servers.
+`npm test` runs the non-live suite and does not attach to any server.
+
+`npm run test:live` runs the live connection suite. It uses `SURREALDB_TEST_ENDPOINT` only when you explicitly provide a disposable test instance. Without that env var, it starts its own isolated local `surreal start ...` process, allocates a fresh namespace and database for the run, and tears the process down afterward. It does not attach to arbitrary local SurrealDB servers.
+
+If `surreal` is not on `PATH`, set one of:
+
+```sh
+SURREALDB_TEST_SERVER_BIN=/absolute/path/to/surreal npm run test:live
+SURREALDB_TEST_SERVER_CMD='surreal' npm run test:live
+```
+
+The launcher also auto-detects the common local install path `/home/m/.surrealdb/surreal` when present.
 
 ## Docs
 
