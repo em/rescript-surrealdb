@@ -1,0 +1,31 @@
+{
+  "name": "rescript-surrealdb",
+  "namespace": false,
+  "dependencies": [
+    "rescript-webapi"
+  ],
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    },
+    {
+      "dir": "examples",
+      "subdirs": true,
+      "type": "dev"
+    },
+    {
+      "dir": "tests",
+      "subdirs": true,
+      "type": "dev"
+    }
+  ],
+  "package-specs": {
+    "module": "esmodule",
+    "in-source": true
+  },
+  "suffix": ".mjs",
+  "warnings": {
+    "error": "+8"
+  }
+}

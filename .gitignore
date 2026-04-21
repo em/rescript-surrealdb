@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+
+# ReScript generated artifacts
+lib/
+src/**/*.mjs
+tests/**/*.mjs
+
+# Local editor and OS noise
+.DS_Store

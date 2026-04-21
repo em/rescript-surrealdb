@@ -1,0 +1,11 @@
+let validation: string
+let configuration: string
+let thrown: string
+let query: string
+let serialization: string
+let notAllowed: string
+let notFound: string
+let alreadyExists: string
+let connection: string
+let internal: string
+let all: array<string>

@@ -1,0 +1,55 @@
+{
+  "name": "rescript-surrealdb",
+  "version": "0.1.0",
+  "description": "ReScript bindings for the public SurrealDB JavaScript SDK",
+  "type": "module",
+  "homepage": "https://github.com/em/rescript-surrealdb#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/em/rescript-surrealdb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/em/rescript-surrealdb/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "rescript",
+    "surrealdb",
+    "bindings",
+    "database",
+    "sdk"
+  ],
+  "files": [
+    "README.md",
+    "docs",
+    "rescript.json",
+    "src/**/*.js",
+    "src/**/*.mjs",
+    "src/**/*.res"
+  ],
+  "exports": {
+    ".": {
+      "import": "./src/Surrealdb.mjs",
+      "default": "./src/Surrealdb.mjs"
+    }
+  },
+  "scripts": {
+    "build": "rescript build",
+    "clean": "rescript clean",
+    "test": "vitest run --config vitest.config.js",
+    "test:coverage": "vitest run --config vitest.config.js --coverage",
+    "test:watch": "vitest --config vitest.config.js"
+  },
+  "dependencies": {
+    "@rescript/runtime": "12.2.0",
+    "surrealdb": "^2.0.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
+    "rescript": "12.2.0",
+    "rescript-webapi": "^0.10.0",
+    "vitest": "^4.1.4"
+  }
+}
