@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+  live:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Start SurrealDB
+        run: |
+          docker run -d --rm --name surrealdb-test \
+            -p 127.0.0.1:8787:8000 \
+            surrealdb/surrealdb:latest \
+            start --user root --pass root --log error memory
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8787/version >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs surrealdb-test
+          exit 1
+
+      - run: npm run test:live
+        env:
+          SURREALDB_TEST_ENDPOINT: ws://127.0.0.1:8787/rpc
+          SURREALDB_TEST_NAMESPACE: ci
+          SURREALDB_TEST_DATABASE: rescript_surrealdb_ci
+          SURREALDB_TEST_USERNAME: root
+          SURREALDB_TEST_PASSWORD: root
+
+      - name: Stop SurrealDB
+        if: always()
+        run: docker stop surrealdb-test || true

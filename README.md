@@ -50,6 +50,14 @@ SURREALDB_TEST_SERVER_CMD='surreal' npm run test:live
 
 The launcher also auto-detects the common local install path `/home/m/.surrealdb/surreal` when present.
 
+## Release Management
+
+- Versioning is managed with Changesets.
+- Run `npm run changeset` for any user-facing package change.
+- The `release.yml` workflow opens or updates the release PR on `main`.
+- Merging that release PR runs `npm run release` in GitHub Actions and publishes to npm.
+- The repo needs a GitHub Actions secret named `NPM_TOKEN` with publish rights for `rescript-surrealdb`.
+
 ## Docs
 
 - [`docs/research.md`](./docs/research.md)

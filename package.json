@@ -44,13 +44,16 @@
   },
   "scripts": {
     "build": "rescript build",
+    "changeset": "changeset",
     "clean": "rescript clean",
+    "release": "npm publish --access public --provenance",
     "test": "npm run build && vitest run --config vitest.config.js",
     "test:live": "npm run build && vitest run --config vitest.live.config.js",
     "test:all": "npm run test && npm run test:live",
     "test:coverage": "npm run build && vitest run --config vitest.config.js --coverage",
     "test:watch": "vitest --config vitest.config.js",
-    "test:live:watch": "vitest --config vitest.live.config.js"
+    "test:live:watch": "vitest --config vitest.live.config.js",
+    "version-packages": "changeset version && npm install --package-lock-only"
   },
   "dependencies": {
     "@rescript/runtime": "12.2.0",
@@ -60,6 +63,7 @@
     "surrealdb": "^2.0.3"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@vitest/coverage-v8": "^4.1.4",
     "rescript": "12.2.0",
     "surrealdb": "^2.0.3",
