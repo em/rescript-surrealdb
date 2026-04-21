@@ -9,6 +9,14 @@
 - Keep the package generic and reusable outside any single app.
 - Verify the binding surface with Vitest plus live SDK execution against a local SurrealDB instance.
 
+## Install
+
+```sh
+npm install surrealdb rescript-surrealdb
+```
+
+`surrealdb` is a peer dependency of the binding package.
+
 ## Package shape
 
 - `src/Surrealdb.res` exposes the top-level export map.
