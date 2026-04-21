@@ -27,7 +27,8 @@
     "rescript.json",
     "src/**/*.js",
     "src/**/*.mjs",
-    "src/**/*.res"
+    "src/**/*.res",
+    "src/**/*.resi"
   ],
   "exports": {
     ".": {
@@ -38,18 +39,21 @@
   "scripts": {
     "build": "rescript build",
     "clean": "rescript clean",
-    "test": "vitest run --config vitest.config.js",
-    "test:coverage": "vitest run --config vitest.config.js --coverage",
+    "test": "npm run build && vitest run --config vitest.config.js",
+    "test:coverage": "npm run build && vitest run --config vitest.config.js --coverage",
     "test:watch": "vitest --config vitest.config.js"
   },
   "dependencies": {
-    "@rescript/runtime": "12.2.0",
+    "@rescript/runtime": "12.2.0"
+  },
+  "peerDependencies": {
     "surrealdb": "^2.0.3"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.4",
     "rescript": "12.2.0",
     "rescript-webapi": "^0.10.0",
+    "surrealdb": "^2.0.3",
     "vitest": "^4.1.4"
   }
 }
