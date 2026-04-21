@@ -40,7 +40,8 @@
     ".": {
       "import": "./src/Surrealdb.mjs",
       "default": "./src/Surrealdb.mjs"
-    }
+    },
+    "./src/*": "./src/*"
   },
   "scripts": {
     "build": "rescript build",
