@@ -1,8 +1,8 @@
 # rescript-surrealdb
 
-ReScript bindings for the public [`surrealdb`](https://www.npmjs.com/package/surrealdb) JavaScript SDK.
+ReScript bindings for the official [`surrealdb`](https://www.npmjs.com/package/surrealdb) JavaScript SDK.
 
-The package stays close to the upstream SDK shape. The top-level module is `Surrealdb`, with grouped modules for connections, queries, live queries, values, and errors.
+The package stays close to the upstream SDK shape, so the SurrealDB JavaScript docs map directly to the ReScript modules in this repo.
 
 ## Install
 
@@ -10,11 +10,19 @@ The package stays close to the upstream SDK shape. The top-level module is `Surr
 npm install surrealdb rescript-surrealdb
 ```
 
-`surrealdb` is a peer dependency.
+Add the package to `rescript.json`:
 
-Supported upstream SDK range: `^2.0.3`.
+```json
+{
+  "dependencies": ["rescript-surrealdb"]
+}
+```
 
-## Example
+- `surrealdb` is a peer dependency
+- supported SDK range: `surrealdb@^2.0.3`
+- package engine requirement: `node >=20`
+
+## Quick Start
 
 ```rescript
 let run = async () => {
@@ -42,22 +50,25 @@ let run = async () => {
 }
 ```
 
-More examples:
+## Package Guide
+
+- `Surrealdb.Connection` covers client creation, authentication, sessions, engines, and transactions
+- `Surrealdb.Query` covers text queries, query builders, frames, and response types
+- `Surrealdb.Live` covers live subscriptions, messages, and frame handling
+- `Surrealdb.Values` covers SurrealDB value classes, codecs, record IDs, ranges, and geometry values
+- `Surrealdb.Errors` covers client, server, and classified error shapes
+- `Surrealdb.Api` covers the HTTP API bindings
+
+Official SDK docs:
+
+- [SurrealDB JavaScript SDK](https://surrealdb.com/docs/sdk/javascript)
+- [SurrealDB JavaScript data types](https://surrealdb.com/docs/sdk/javascript/core/data-types)
+
+Examples:
 
 - [Connect](https://github.com/em/rescript-surrealdb/blob/main/examples/Example_Connect.res)
 - [Query](https://github.com/em/rescript-surrealdb/blob/main/examples/Example_Query.res)
-- [Live](https://github.com/em/rescript-surrealdb/blob/main/examples/Example_Live.res)
-
-## Package Layout
-
-- `Surrealdb.Connection`: client, session, engine, and feature bindings
-- `Surrealdb.Query`: query builders and query execution
-- `Surrealdb.Live`: live query subscriptions and frame/message types
-- `Surrealdb.Values`: SurrealDB value classes and codecs
-- `Surrealdb.Errors`: client and server error bindings
-- `Surrealdb.Api`: HTTP API bindings
-
-The public export map lives in [`src/Surrealdb.resi`](./src/Surrealdb.resi).
+- [Live queries](https://github.com/em/rescript-surrealdb/blob/main/examples/Example_Live.res)
 
 ## Development
 
@@ -67,33 +78,14 @@ npm run build
 npm test
 ```
 
-`npm test` is the full verification command for this repo.
+Additional local commands:
 
-CI also uses a unit-only split and an explicit live split:
+- `npm run test:unit`
+- `npm run test:live`
+- `npm run db:start`
 
-```sh
-npm run test:unit
-npm run test:live
-```
+## Release
 
-For manual local work with a foreground SurrealDB process:
+Releases are versioned with Changesets and published by GitHub Actions through the repository workflow:
 
-```sh
-npm run db:start
-```
-
-## Releases
-
-User-facing changes go through Changesets.
-
-Publishing is owned by GitHub Actions in [`.github/workflows/release.yml`](./.github/workflows/release.yml). Local shells do not publish this package.
-
-## Maintainer Docs
-
-- [Type fidelity notes](https://github.com/em/rescript-surrealdb/blob/main/docs/TYPE_FIDELITY.md)
-- [Soundness audit](https://github.com/em/rescript-surrealdb/blob/main/docs/TYPE_SOUNDNESS_AUDIT.md)
-- [Soundness matrix](https://github.com/em/rescript-surrealdb/blob/main/docs/SOUNDNESS_MATRIX.md)
-- [Binding proof process](https://github.com/em/rescript-surrealdb/blob/main/docs/process/BINDING_PROOF_PROCESS.md)
-- [README contract](https://github.com/em/rescript-surrealdb/blob/main/docs/process/README_CONTRACT.md)
-
-This repo uses Codex-assisted binding authorship. Material Codex-assisted changes are credited in git history, and non-trivial public binding changes carry written audits and soundness coverage records.
+- [`.github/workflows/release.yml`](https://github.com/em/rescript-surrealdb/blob/main/.github/workflows/release.yml)

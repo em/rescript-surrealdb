@@ -2,77 +2,79 @@
 
 ## Purpose
 
-`README.md` is the human landing page for the repository and the npm package.
+`README.md` is the package landing page on GitHub and npm.
 
-Its first job is to help a new user decide whether the package is relevant and how to start using it.
+Its job is to help a human reader decide whether the package is relevant, install it quickly, and find the next example or module they need.
 
 ## Primary Reader
 
-Assume the reader has just opened the GitHub repo or npm page and wants fast answers to these questions:
+Assume the reader has not seen the repo before and wants fast answers to these questions:
 
-- what is this package
+- what package is this
 - what upstream package does it bind
+- what version line does it support
 - how do I install it
-- what does basic usage look like
-- what are the main modules
-- how do I build and test it locally
+- what does the smallest useful example look like
+- where do I go next for examples or modules
 
 ## Required Shape
 
 README should usually present information in this order:
 
 1. package identity and one-sentence description
-2. install
+2. install and compatibility notes
 3. smallest useful example
-4. high-level package layout or main modules
-5. local development and verification
-6. release basics
-7. links to deeper maintainer docs
+4. high-level package guide
+5. examples and upstream docs
+6. local development commands
+7. a short release note if the release path matters to contributors
 
 ## What README Must Cover
 
 - what the package is
 - what upstream package or packages it binds
-- installation
-- a real usage example near the top
-- high-level package shape
-- how to run the package locally
-- release basics
-  - whether publishing is local or CI-owned
-  - if CI-owned, that local shells do not publish
-- a brief maintenance note
-  - Codex-assisted binding authorship
-  - documented proof process
-  - deeper audit and soundness docs live elsewhere
+- the supported upstream version or package line
+- installation, including peer dependencies when relevant
+- a real example near the top
+- the main modules, subpaths, or task areas
+- where to find more examples or upstream reference docs
+- the main local build and test commands
 
 ## What README Must Not Become
 
-- an internal design notebook
+- an internal process manual
 - an audit log
-- a process manual
 - a proof record
-- a list of repo policies
+- a changelog
 - a copy of `AGENTS.md`
-- an AI status report
+- a release playbook
+- an AI authorship statement
+- a list of internal repo rules
 
-Do not lead with maintenance model, adversarial review, Codex attribution, or soundness process language before the reader has seen install and usage.
+Do not require readers to learn the repo's maintenance process before they can install or use the package.
 
 ## Style Rules
 
-- optimize for first-time human readers
-- lead with the package, not the process
-- use concrete examples instead of abstract claims
-- keep module summaries high-level
-- keep maintainer-process text brief and late
-- link out instead of inlining long process details
-- if a linked file is not shipped in the npm tarball, use an absolute GitHub link
+- write for package users first
+- make install and usage visible without scrolling through maintainer material
+- prefer one working example over abstract claims
+- mirror upstream package names and terminology
+- keep module descriptions short and task-focused
+- keep maintainer-only notes brief and late
+- use absolute GitHub links for files that are not shipped in the npm tarball
+
+## Maintainer Notes
+
+Maintainer or contributor links are allowed at the end of the README when they help someone continue deeper work.
+
+They are optional. They are not the main content of the page.
 
 ## Source Of Truth Rule
 
-The binding code and public `.resi` files are the source of truth for the package interface.
+The binding code and public `.resi` files define the package interface.
 
-The README explains that interface at a high level. It does not replace the interface files or the process docs.
+The README explains that interface at a high level. It does not replace the interface files or the deeper docs.
 
 ## Required Maintenance Rule
 
-When the supported upstream version, public package shape, installation story, or maintainer workflow changes in a user-visible way, update `README.md`.
+When the supported upstream version, installation story, public package shape, or example path changes in a user-visible way, update `README.md`.
