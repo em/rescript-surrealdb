@@ -9,5 +9,6 @@ export default {
     environment: "node",
     fileParallelism: false,
     globalSetup: ["./tests/support/globalSetup.mjs"],
+    setupFiles: ["./tests/support/websocketSetup.mjs"],
   },
 }

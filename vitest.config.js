@@ -9,6 +9,7 @@ export default {
     environment: "node",
     fileParallelism: false,
     globalSetup: ["./tests/support/globalSetup.mjs"],
+    setupFiles: ["./tests/support/websocketSetup.mjs"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.mjs"],
