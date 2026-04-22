@@ -29,6 +29,7 @@
 - result:
   - local `npm run release` now refuses with an explicit GitHub Actions-only message
   - local `releasePublish.mjs` refuses without GitHub Actions trusted publishing environment variables
+  - `releasePublish.mjs` now exits cleanly when the current package version is already published on npm
 
 ## Local Representation
 
@@ -45,6 +46,7 @@
 - chosen shape:
   - `npm run release` is a hard local refusal
   - `npm run release:ci` is the only publish command and checks for GitHub Actions trusted publishing environment
+  - `releasePublish.mjs` skips publish instead of failing when the repo version is already on npm
   - docs now state that local shells do not publish
 
 ## Alternatives Considered
@@ -79,6 +81,10 @@
 - failure mode: workflow and docs drift apart about who publishes
 - how the current design prevents or exposes it: README, Changesets README, process docs, package scripts, and workflow now all describe the same GitHub Actions-only path
 - test or probe covering it: file inspection
+
+- failure mode: a doc-only or CI-only push causes the release workflow to republish the already-published version and fail
+- how the current design prevents or exposes it: `releasePublish.mjs` checks the published npm version before attempting `npm publish`
+- test or probe covering it: `GITHUB_ACTIONS=true ACTIONS_ID_TOKEN_REQUEST_URL=stub ACTIONS_ID_TOKEN_REQUEST_TOKEN=stub node scripts/releasePublish.mjs`
 
 ## Evidence
 

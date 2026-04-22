@@ -32,6 +32,10 @@ export function callEngineFactory(context, factory) {
   return factory(context);
 }
 
+export function globalWebSocketOrUndefined() {
+  return globalThis.WebSocket;
+}
+
 export function uint8ArrayToArray(bytes) {
   return Array.from(bytes);
 }

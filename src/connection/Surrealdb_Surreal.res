@@ -84,7 +84,8 @@ external importStreamInput: Webapi.ReadableStream.t => importInput = "%identity"
 
 @module("../support/Surrealdb_Interop.js") @val external nullProvidedAuth: providedAuth = "nullValue"
 
-@val external defaultWebSocketImpl: Surrealdb_DriverOptions.websocketImpl = "WebSocket"
+@module("../support/Surrealdb_Interop.js")
+external defaultWebSocketImpl: option<Surrealdb_DriverOptions.websocketImpl> = "globalWebSocketOrUndefined"
 @val external defaultFetchImpl: Surrealdb_DriverOptions.fetchImpl = "fetch"
 
 @send

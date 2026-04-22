@@ -134,7 +134,6 @@ describe("SurrealDB session surface", () => {
         ~engines,
         ~codecs=Dict.fromArray([("cbor", Surrealdb_ValueCodec.cborFactory)]),
         ~codecOptions=Surrealdb_CborCodec.makeOptions(~useNativeDates=true, ()),
-        ~websocketImpl=Surrealdb_Surreal.defaultWebSocketImpl,
         ~fetchImpl=Surrealdb_Surreal.defaultFetchImpl,
         (),
       )

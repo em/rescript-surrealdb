@@ -7,6 +7,7 @@
   - `docs/audits/bootstrap-soundness-repair.md`
   - `docs/audits/bootstrap-public-boundary-failures.md`
   - `docs/audits/connection-remote-engine-factory.md`
+  - `docs/audits/environment-default-globals.md`
   - `docs/audits/public-boundary-tightening.md`
 
 ## Matrix
@@ -27,6 +28,7 @@
 | Connection | session lifecycle and auth | auth/session APIs drift from installed SDK | `src/connection/Surrealdb_Surreal.resi`, `src/connection/Surrealdb_Session.resi` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/bootstrap-soundness-repair.md` | strong | full lifecycle exercised against a real server |
 | Connection | remote engine factory invocation | helper drift widens factory or diagnostics boundaries | `src/connection/Surrealdb_DriverContext.resi`, `src/connection/Surrealdb_RemoteEngines.resi` | `tests/query/SurrealdbPublicSurface_test.res`, `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/connection-remote-engine-factory.md` | strong | factory stays opaque and diagnostics stay classified |
 | Connection | engine subtype casts | engine downcast could drift if SDK hierarchy changes | `src/connection/Surrealdb_HttpEngine.resi`, `src/connection/Surrealdb_WebSocketEngine.resi`, `src/connection/Surrealdb_RpcEngine.resi` | `tests/query/SurrealdbPublicSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | ws/http instantiation is classified directly through the public `fromEngine` APIs |
+| Connection | default transport globals | eager global access can lie about environment capabilities or crash module load | `src/connection/Surrealdb_Surreal.resi`, `src/support/Surrealdb_Interop.js` | `tests/query/SurrealdbPublicSurface_test.res` | `docs/audits/environment-default-globals.md` | strong | `defaultWebSocketImpl` is now optional and the module imports cleanly when `globalThis.WebSocket` is absent |
 | API | optional response fields | absent body/status/headers could manufacture values | `src/api/Surrealdb_ApiResponse.resi` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | direct object-boundary tests cover omitted, nullish, and present fields |
 | API | `ApiPromise.then_` fulfillment helper | callback could receive a value inconsistent with the promise surface | `src/api/Surrealdb_ApiPromise.resi` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | direct test verifies the fulfillment callback receives `ApiResponse.t` on the installed SDK |
 | Support | `Jsonify` unknown-to-JSON cast | SDK may return a non-JSON value | `src/support/Surrealdb_Jsonify.resi` | `tests/query/SurrealdbPublicSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | nested SDK values are stringified and parsed back as valid JSON |
@@ -36,4 +38,3 @@
 
 - `strong` -- direct test that would fail if the binding lied about the boundary
 - `partial` -- test exists, but value-dependent or drift-oriented risk remains
-

@@ -160,7 +160,6 @@ describe("SurrealDB public surface", () => {
         ~engines,
         ~codecs=Dict.fromArray([("cbor", Surrealdb_ValueCodec.cborFactory)]),
         ~codecOptions=Surrealdb_CborCodec.makeOptions(~useNativeDates=true, ()),
-        ~websocketImpl=Surrealdb_Surreal.defaultWebSocketImpl,
         ~fetchImpl=Surrealdb_Surreal.defaultFetchImpl,
         (),
       )
@@ -171,6 +170,10 @@ describe("SurrealDB public surface", () => {
     )
     ->Expect.expect
     ->Expect.toEqual((["ws", "wss", "http", "https"], "disconnected", false))
+  })
+
+  test("default websocket impl stays optional at the public boundary", () => {
+    Surrealdb_Surreal.defaultWebSocketImpl->Option.isSome->Expect.expect->Expect.toEqual(true)
   })
 
   test("exported Features constants expose the SDK feature values", () => {
@@ -417,7 +420,6 @@ describe("SurrealDB public surface", () => {
         ~engines,
         ~codecs=codecFactories,
         ~codecOptions=Surrealdb_CborCodec.makeOptions(),
-        ~websocketImpl=Surrealdb_Surreal.defaultWebSocketImpl,
         ~fetchImpl=Surrealdb_Surreal.defaultFetchImpl,
         (),
       )

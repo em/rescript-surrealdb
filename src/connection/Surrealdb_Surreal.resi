@@ -61,7 +61,7 @@ let importStringInput: string => importInput
 let importBlobInput: Webapi.Blob.t => importInput
 let importStreamInput: Webapi.ReadableStream.t => importInput
 let nullProvidedAuth: providedAuth
-let defaultWebSocketImpl: Surrealdb_DriverOptions.websocketImpl
+let defaultWebSocketImpl: option<Surrealdb_DriverOptions.websocketImpl>
 let defaultFetchImpl: Surrealdb_DriverOptions.fetchImpl
 let connectRaw: (t, string, connectOptions) => promise<bool>
 let connectUrlRaw: (t, Webapi.Url.t, connectOptions) => promise<bool>

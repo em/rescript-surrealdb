@@ -61,6 +61,15 @@ The public `.resi` files stay authoritative. This file explains where the bindin
   - `Surrealdb_DriverContext.instantiate: (t, Surrealdb_RemoteEngines.factory) => Surrealdb_Engine.t`
 - Why: the SDK returns a plain JS record of callable engine factories. The binding keeps those function values opaque and invokes them through a package helper so `DriverOptions`, `RemoteEngines`, and `DriverContext` do not create a public module cycle.
 
+### Environment default WebSocket
+
+- Upstream reality:
+  - WebSocket availability is environment-dependent
+  - the SDK can run in environments where the global `WebSocket` binding is absent or not the active transport path
+- ReScript representation:
+  - `Surrealdb_Surreal.defaultWebSocketImpl: option<Surrealdb_DriverOptions.websocketImpl>`
+- Why: exporting a non-optional default value lies about environments such as Node 20 where no global `WebSocket` exists. The binding now keeps that boundary honest and leaves absence explicit.
+
 ### Codec decode boundary
 
 - Public surface:
