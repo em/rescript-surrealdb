@@ -8,6 +8,7 @@
   - `docs/audits/bootstrap-public-boundary-failures.md`
   - `docs/audits/connection-remote-engine-factory.md`
   - `docs/audits/environment-default-globals.md`
+  - `docs/audits/node20-runtime-compatibility.md`
   - `docs/audits/public-boundary-tightening.md`
 
 ## Matrix
@@ -32,6 +33,7 @@
 | API | optional response fields | absent body/status/headers could manufacture values | `src/api/Surrealdb_ApiResponse.resi` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | direct object-boundary tests cover omitted, nullish, and present fields |
 | API | `ApiPromise.then_` fulfillment helper | callback could receive a value inconsistent with the promise surface | `src/api/Surrealdb_ApiPromise.resi` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | direct test verifies the fulfillment callback receives `ApiResponse.t` on the installed SDK |
 | Support | `Jsonify` unknown-to-JSON cast | SDK may return a non-JSON value | `src/support/Surrealdb_Jsonify.resi` | `tests/query/SurrealdbPublicSurface_test.res` | `docs/audits/public-boundary-tightening.md` | strong | nested SDK values are stringified and parsed back as valid JSON |
+| Support | Node 20 runtime compatibility | shipped helpers or live verification can depend on newer JS/runtime globals than the supported engine provides | `src/support/Surrealdb_Interop.js`, `tests/support/websocketSetup.mjs` | `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/node20-runtime-compatibility.md` | strong | async iterable collection no longer depends on `Array.fromAsync`, and GitHub Node 20 live verification now uses a constructor-compatible WebSocket |
 | Export/Helpers | package-authored helper surface | helpers drift from documented non-upstream status | `src/query/Surrealdb_Export.resi`, `src/query/Surrealdb_Query.resi`, `src/connection/Surrealdb_DriverContext.resi` | `tests/query/SurrealdbPublicSurface_test.res`, `tests/connection/SurrealdbSessionSurface_test.res` | `docs/audits/connection-remote-engine-factory.md` | partial | helper behavior is tested and documented; drift remains a documentation-maintenance risk |
 
 ## Evidence Status Key
