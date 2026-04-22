@@ -7,7 +7,13 @@ export function instanceOfClass(instance, class_) {
 }
 
 export async function collectAsync(iterable) {
-  return Array.fromAsync(iterable);
+  const values = [];
+
+  for await (const value of iterable) {
+    values.push(value);
+  }
+
+  return values;
 }
 
 export async function forEachAsync(iterable, fn) {
