@@ -9,30 +9,30 @@ type t
 @module("surrealdb") external raw: string => t = "raw"
 
 // Source: surrealdb.d.ts — Comparison operators
-@module("surrealdb") external eq: (string, unknown) => t = "eq"
-@module("surrealdb") external eeq: (string, unknown) => t = "eeq"
-@module("surrealdb") external ne: (string, unknown) => t = "ne"
-@module("surrealdb") external gt: (string, unknown) => t = "gt"
-@module("surrealdb") external gte: (string, unknown) => t = "gte"
-@module("surrealdb") external lt: (string, unknown) => t = "lt"
-@module("surrealdb") external lte: (string, unknown) => t = "lte"
+@module("surrealdb") external eq: (string, Surrealdb_JsValue.t) => t = "eq"
+@module("surrealdb") external eeq: (string, Surrealdb_JsValue.t) => t = "eeq"
+@module("surrealdb") external ne: (string, Surrealdb_JsValue.t) => t = "ne"
+@module("surrealdb") external gt: (string, Surrealdb_JsValue.t) => t = "gt"
+@module("surrealdb") external gte: (string, Surrealdb_JsValue.t) => t = "gte"
+@module("surrealdb") external lt: (string, Surrealdb_JsValue.t) => t = "lt"
+@module("surrealdb") external lte: (string, Surrealdb_JsValue.t) => t = "lte"
 
 // Source: surrealdb.d.ts — Collection operators
-@module("surrealdb") external contains: (string, unknown) => t = "contains"
-@module("surrealdb") external containsAny: (string, unknown) => t = "containsAny"
-@module("surrealdb") external containsAll: (string, unknown) => t = "containsAll"
-@module("surrealdb") external containsNone: (string, unknown) => t = "containsNone"
-@module("surrealdb") external inside: (string, unknown) => t = "inside"
-@module("surrealdb") external outside: (string, unknown) => t = "outside"
-@module("surrealdb") external intersects: (string, unknown) => t = "intersects"
+@module("surrealdb") external contains: (string, Surrealdb_JsValue.t) => t = "contains"
+@module("surrealdb") external containsAny: (string, Surrealdb_JsValue.t) => t = "containsAny"
+@module("surrealdb") external containsAll: (string, Surrealdb_JsValue.t) => t = "containsAll"
+@module("surrealdb") external containsNone: (string, Surrealdb_JsValue.t) => t = "containsNone"
+@module("surrealdb") external inside: (string, Surrealdb_JsValue.t) => t = "inside"
+@module("surrealdb") external outside: (string, Surrealdb_JsValue.t) => t = "outside"
+@module("surrealdb") external intersects: (string, Surrealdb_JsValue.t) => t = "intersects"
 
 // Source: surrealdb.d.ts — Full-text search and vector operators
 @module("surrealdb") external matches: (string, string) => t = "matches"
 @module("surrealdb") external matchesWithRef: (string, string, int) => t = "matches"
-@module("surrealdb") external knn: (string, unknown, int) => t = "knn"
-@module("surrealdb") external knnWithMetric: (string, unknown, int, string) => t = "knn"
-@module("surrealdb") external knnWithEf: (string, unknown, int, int) => t = "knn"
-@module("surrealdb") external between: (string, unknown, unknown) => t = "between"
+@module("surrealdb") external knn: (string, Surrealdb_JsValue.t, int) => t = "knn"
+@module("surrealdb") external knnWithMetric: (string, Surrealdb_JsValue.t, int, string) => t = "knn"
+@module("surrealdb") external knnWithEf: (string, Surrealdb_JsValue.t, int, int) => t = "knn"
+@module("surrealdb") external between: (string, Surrealdb_JsValue.t, Surrealdb_JsValue.t) => t = "between"
 
 // Source: surrealdb.d.ts — Logical combinators
 @module("surrealdb") @variadic external and_: array<t> => t = "and"

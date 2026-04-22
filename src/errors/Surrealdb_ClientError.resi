@@ -22,6 +22,9 @@ type invalidRecordId
 type invalidDuration
 type invalidDecimal
 type invalidTable
+type featureValue =
+  | Feature(Surrealdb_Feature.t)
+  | ForeignPayload(Surrealdb_ErrorPayload.t)
 
 let callTerminatedCtor: ctor
 let reconnectExhaustionCtor: ctor
@@ -46,7 +49,7 @@ let invalidRecordIdCtor: ctor
 let invalidDurationCtor: ctor
 let invalidDecimalCtor: ctor
 let invalidTableCtor: ctor
-let unexpectedServerResponseResponse: unexpectedServerResponse => unknown
+let unexpectedServerResponseResponse: unexpectedServerResponse => Surrealdb_ErrorPayload.t
 let unsupportedEngineName: unsupportedEngine => string
 let httpConnectionStatus: httpConnection => int
 let httpConnectionStatusText: httpConnection => string
@@ -54,38 +57,39 @@ let httpConnectionBuffer: httpConnection => ArrayBuffer.t
 let unsupportedVersionVersion: unsupportedVersion => string
 let unsupportedVersionMinimum: unsupportedVersion => string
 let unsupportedVersionMaximum: unsupportedVersion => string
-let publishCauses: publish => array<unknown>
-let unsupportedFeatureValue: unsupportedFeature => unknown
-let unavailableFeatureValue: unavailableFeature => unknown
+let publishCauses: publish => array<Surrealdb_SurrealError.cause>
+let unsupportedFeatureValue: unsupportedFeature => featureValue
+let unavailableFeatureValue: unavailableFeature => featureValue
 let unavailableFeatureVersion: unavailableFeature => string
 let invalidSessionRaw: invalidSession => Nullable.t<Surrealdb_Uuid.t>
 let unsuccessfulApiPath: unsuccessfulApi => string
 let unsuccessfulApiMethod: unsuccessfulApi => string
 let unsuccessfulApiResponse: unsuccessfulApi => Surrealdb_ApiResponse.t
 let arrayBufferByteLength: ArrayBuffer.t => int
-let asCallTerminated: 'a => option<callTerminated>
-let asReconnectExhaustion: 'a => option<reconnectExhaustion>
-let asReconnectIteration: 'a => option<reconnectIteration>
-let asUnexpectedServerResponse: 'a => option<unexpectedServerResponse>
-let asUnexpectedConnection: 'a => option<unexpectedConnection>
-let asUnsupportedEngine: 'a => option<unsupportedEngine>
-let asConnectionUnavailable: 'a => option<connectionUnavailable>
-let asMissingNamespaceDatabase: 'a => option<missingNamespaceDatabase>
-let asHttpConnection: 'a => option<httpConnection>
-let asAuthentication: 'a => option<authentication>
-let asLiveSubscription: 'a => option<liveSubscription>
-let asUnsupportedVersion: 'a => option<unsupportedVersion>
-let asExpression: 'a => option<expression>
-let asPublish: 'a => option<publish>
-let asInvalidDate: 'a => option<invalidDate>
-let asUnsupportedFeature: 'a => option<unsupportedFeature>
-let asUnavailableFeature: 'a => option<unavailableFeature>
-let asInvalidSession: 'a => option<invalidSession>
-let asUnsuccessfulApi: 'a => option<unsuccessfulApi>
-let asInvalidRecordId: 'a => option<invalidRecordId>
-let asInvalidDuration: 'a => option<invalidDuration>
-let asInvalidDecimal: 'a => option<invalidDecimal>
-let asInvalidTable: 'a => option<invalidTable>
+let isInstance: unknown => bool
+let asCallTerminated: unknown => option<callTerminated>
+let asReconnectExhaustion: unknown => option<reconnectExhaustion>
+let asReconnectIteration: unknown => option<reconnectIteration>
+let asUnexpectedServerResponse: unknown => option<unexpectedServerResponse>
+let asUnexpectedConnection: unknown => option<unexpectedConnection>
+let asUnsupportedEngine: unknown => option<unsupportedEngine>
+let asConnectionUnavailable: unknown => option<connectionUnavailable>
+let asMissingNamespaceDatabase: unknown => option<missingNamespaceDatabase>
+let asHttpConnection: unknown => option<httpConnection>
+let asAuthentication: unknown => option<authentication>
+let asLiveSubscription: unknown => option<liveSubscription>
+let asUnsupportedVersion: unknown => option<unsupportedVersion>
+let asExpression: unknown => option<expression>
+let asPublish: unknown => option<publish>
+let asInvalidDate: unknown => option<invalidDate>
+let asUnsupportedFeature: unknown => option<unsupportedFeature>
+let asUnavailableFeature: unknown => option<unavailableFeature>
+let asInvalidSession: unknown => option<invalidSession>
+let asUnsuccessfulApi: unknown => option<unsuccessfulApi>
+let asInvalidRecordId: unknown => option<invalidRecordId>
+let asInvalidDuration: unknown => option<invalidDuration>
+let asInvalidDecimal: unknown => option<invalidDecimal>
+let asInvalidTable: unknown => option<invalidTable>
 let invalidSession: invalidSession => option<Surrealdb_Uuid.t>
 let toJsonObject: Surrealdb_SurrealError.t => dict<JSON.t>
 let toJSON: Surrealdb_SurrealError.t => JSON.t

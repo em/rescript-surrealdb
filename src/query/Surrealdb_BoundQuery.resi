@@ -8,6 +8,6 @@ let mergeBindings: (dict<Surrealdb_JsValue.t>, dict<Surrealdb_JsValue.t>) => uni
 let appendQuery: (t, t) => t
 let appendText: (t, string) => t
 let appendString: (t, string, dict<Surrealdb_JsValue.t>) => t
-let appendTemplate: (t, array<string>, array<unknown>) => t
+let appendTemplate: (t, array<string>, array<Surrealdb_JsValue.t>) => t
 let query: t => string
 let bindings: t => dict<Surrealdb_JsValue.t>

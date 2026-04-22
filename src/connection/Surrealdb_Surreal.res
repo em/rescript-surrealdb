@@ -4,35 +4,22 @@
 // SurrealSession, exposes connect(), signin(), sessions(), newSession(),
 // beginTransaction(), isConnected, and close().
 type t
-type driverOptions
 type connectAuth
 type providedAuth
 type authentication
 type connectOptions
 type reconnect
 type reconnectOptions
-type websocketImpl
-type fetchImpl
 type importInput
 
 @module("../support/Surrealdb_Interop.js")
-external subscribe: (t, string, array<unknown> => unit) => unit => unit = "subscribeEvent"
+external subscribeRaw: (t, string, array<unknown> => unit) => unit => unit = "subscribeEvent"
 
 @module("surrealdb") @new
 external makeDefault: unit => t = "Surreal"
 
-@obj
-external driverOptions: (
-  ~engines: Surrealdb_RemoteEngines.t=?,
-  ~codecs: dict<Surrealdb_ValueCodec.factory>=?,
-  ~codecOptions: Surrealdb_CborCodec.options=?,
-  ~websocketImpl: websocketImpl=?,
-  ~fetchImpl: fetchImpl=?,
-  unit,
-) => driverOptions = ""
-
 @module("surrealdb") @new
-external makeWithOptions: driverOptions => t = "Surreal"
+external makeWithOptions: Surrealdb_DriverOptions.t => t = "Surreal"
 
 external asQueryable: t => Surrealdb_Queryable.t = "%identity"
 external asSession: t => Surrealdb_Session.t = "%identity"
@@ -97,8 +84,8 @@ external importStreamInput: Webapi.ReadableStream.t => importInput = "%identity"
 
 @module("../support/Surrealdb_Interop.js") @val external nullProvidedAuth: providedAuth = "nullValue"
 
-@val external defaultWebSocketImpl: websocketImpl = "WebSocket"
-@val external defaultFetchImpl: fetchImpl = "fetch"
+@val external defaultWebSocketImpl: Surrealdb_DriverOptions.websocketImpl = "WebSocket"
+@val external defaultFetchImpl: Surrealdb_DriverOptions.fetchImpl = "fetch"
 
 @send
 external connectRaw: (t, string, connectOptions) => promise<bool> = "connect"
@@ -126,6 +113,12 @@ external close: t => promise<bool> = "close"
 @send external isFeatureSupported: (t, Surrealdb_Feature.t) => bool = "isFeatureSupported"
 
 let make = () => makeDefault()
+
+let driverOptions = (~engines=?, ~codecs=?, ~codecOptions=?, ~websocketImpl=?, ~fetchImpl=?, ()) =>
+  Surrealdb_DriverOptions.make(~engines?, ~codecs?, ~codecOptions?, ~websocketImpl?, ~fetchImpl?, ())
+
+let subscribe = (db, event, listener) =>
+  db->subscribeRaw(event, payload => listener(payload->Array.map(Surrealdb_Value.fromUnknown)))
 
 let withOptions = (~engines=?, ~codecs=?, ~codecOptions=?, ~websocketImpl=?, ~fetchImpl=?, ()) =>
   makeWithOptions(

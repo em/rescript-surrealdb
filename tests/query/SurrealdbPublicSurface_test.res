@@ -2,34 +2,35 @@ open TestRuntime
 
 external toUnknown: 'a => unknown = "%identity"
 external intToUnknown: int => unknown = "%identity"
-external stringToUnknown: string => unknown = "%identity"
-external floatArrayToUnknown: array<float> => unknown = "%identity"
 
-describe("SurrealDB helper surface", () => {
-  test("escape, mergeBindings, equals, and jsonify match the SDK helper layer", () => {
+describe("SurrealDB public surface", () => {
+  test("escape, mergeBindings, equals, and jsonify match the SDK runtime functions", () => {
     let when_ = Surrealdb_DateTime.fromString("2026-04-20T00:00:00.000Z")
     let recordId = Surrealdb_RecordId.make("widgets", "alpha")
     let target = Dict.fromArray([("left", Surrealdb_JsValue.string("alpha"))])
     let source = Dict.fromArray([("right", Surrealdb_JsValue.recordId(recordId))])
     target->Surrealdb_BoundQuery.mergeBindings(source)
 
-    let payload: dict<unknown> = Dict.make()
-    payload->Dict.set("when", when_->toUnknown)
-    payload->Dict.set("id", recordId->toUnknown)
+    let payload =
+      Dict.fromArray([
+        ("when", when_->Surrealdb_JsValue.dateTime),
+        ("id", recordId->Surrealdb_JsValue.recordId),
+      ])
 
     (
       Surrealdb_Escape.ident("foo-bar"),
       Surrealdb_Escape.int(12),
-      Surrealdb_Escape.idPart(stringToUnknown("alpha beta")),
-      Surrealdb_RangeBound.included(7)->Surrealdb_Escape.rangeBound,
-      when_->toUnknown->Surrealdb_Surql.toString,
-      Surrealdb_Equals.values(recordId->toUnknown, Surrealdb_RecordId.make("widgets", "alpha")->toUnknown),
+      Surrealdb_Escape.idPart(Surrealdb_JsValue.string("alpha beta")),
+      Surrealdb_RangeBound.included(intToUnknown(7))->Surrealdb_Escape.rangeBound,
+      when_->Surrealdb_JsValue.dateTime->Surrealdb_Surql.toString,
+      Surrealdb_Equals.values(
+        recordId->Surrealdb_JsValue.recordId,
+        Surrealdb_RecordId.make("widgets", "alpha")->Surrealdb_JsValue.recordId,
+      ),
       target->Dict.get("right")->Option.isSome,
       payload
-      ->toUnknown
+      ->Surrealdb_JsValue.object
       ->Surrealdb_Jsonify.value
-      ->Surrealdb_Value.fromUnknown
-      ->Surrealdb_Value.toJSON
       ->JSON.stringifyAny
       ->Option.getOr(""),
     )
@@ -46,19 +47,58 @@ describe("SurrealDB helper surface", () => {
     ))
   })
 
+  test("jsonify returns parseable JSON for nested SDK values", () => {
+    let when_ = Surrealdb_DateTime.fromString("2026-04-20T00:00:00.000Z")
+    let payload =
+      Dict.fromArray([
+        ("when", when_->Surrealdb_JsValue.dateTime),
+        ("id", Surrealdb_RecordId.make("widgets", "alpha")->Surrealdb_JsValue.recordId),
+        (
+          "items",
+          [
+            Surrealdb_JsValue.int(1),
+            Surrealdb_RecordId.make("widgets", "beta")->Surrealdb_JsValue.recordId,
+          ]->Surrealdb_JsValue.array,
+        ),
+        (
+          "meta",
+          Dict.fromArray([
+            ("ok", Surrealdb_JsValue.bool(true)),
+            ("label", Surrealdb_JsValue.string("ready")),
+          ])->Surrealdb_JsValue.object,
+        ),
+      ])
+    let jsonText =
+      payload
+      ->Surrealdb_JsValue.object
+      ->Surrealdb_Jsonify.value
+      ->JSON.stringifyAny
+      ->Option.getOr("")
+
+    (
+      jsonText,
+      jsonText->JSON.parseOrThrow->JSON.stringifyAny->Option.getOr(""),
+    )
+    ->Expect.expect
+    ->Expect.toEqual((
+      "{\"when\":\"2026-04-20T00:00:00.000Z\",\"id\":\"widgets:alpha\",\"items\":[1,\"widgets:beta\"],\"meta\":{\"ok\":true,\"label\":\"ready\"}}",
+      "{\"when\":\"2026-04-20T00:00:00.000Z\",\"id\":\"widgets:alpha\",\"items\":[1,\"widgets:beta\"],\"meta\":{\"ok\":true,\"label\":\"ready\"}}",
+    ))
+  })
+
   test("tagged-template exports return the SDK literal types and BoundQuery shape", () => {
     let when_ = Surrealdb_DateTime.fromString("2026-04-20T00:00:00.000Z")
     let query = Surrealdb_Surql.query(
       ["SELECT * FROM ", " WHERE count >= ", ""],
-      [Surrealdb_Table.make("widgets")->toUnknown, intToUnknown(3)],
+      [Surrealdb_Table.make("widgets")->Surrealdb_JsValue.table, Surrealdb_JsValue.int(3)],
     )
 
     (
-      Surrealdb_Surql.text(["SELECT * FROM ", ""], [Surrealdb_Table.make("widgets")->toUnknown]),
+      Surrealdb_Surql.text(["SELECT * FROM ", ""], [Surrealdb_Table.make("widgets")->Surrealdb_JsValue.table]),
       Surrealdb_Surql.dateTime(["2026-04-20T00:00:00.000Z"], [])->Surrealdb_DateTime.toISOString,
       Surrealdb_Surql.recordId(["widgets:alpha"], [])->Surrealdb_StringRecordId.toString,
       Surrealdb_Surql.uuid(["550e8400-e29b-41d4-a716-446655440000"], [])->Surrealdb_Uuid.toString,
-      Surrealdb_Surql.toSurrealqlString(when_->toUnknown),
+      Surrealdb_Surql.toSurrealqlString(when_->Surrealdb_JsValue.dateTime),
       query->Surrealdb_BoundQuery.query,
       query->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
     )
@@ -78,7 +118,7 @@ describe("SurrealDB helper surface", () => {
     let original = Surrealdb_BoundQuery.fromQuery("RETURN $x", Dict.fromArray([("x", Surrealdb_JsValue.int(1))]))
     let clone = original->Surrealdb_BoundQuery.clone
     let appended = clone->Surrealdb_BoundQuery.appendText("; RETURN 2")
-    let templated = appended->Surrealdb_BoundQuery.appendTemplate(["; RETURN ", ""], [intToUnknown(3)])
+    let templated = appended->Surrealdb_BoundQuery.appendTemplate(["; RETURN ", ""], [Surrealdb_JsValue.int(3)])
     let bare = Surrealdb_BoundQuery.fromText("RETURN 4")
 
     (
@@ -98,6 +138,19 @@ describe("SurrealDB helper surface", () => {
       "RETURN 4",
       0,
     ))
+  })
+
+  test("frame classifier stays open at unknown", () => {
+    let randomPayload: dict<unknown> = Dict.make()
+    randomPayload->Dict.set("query", intToUnknown(0))
+
+    (
+      randomPayload->toUnknown->Surrealdb_Frame.fromUnknown->Option.isSome,
+      intToUnknown(7)->Surrealdb_Frame.fromUnknown->Option.isSome,
+      randomPayload->toUnknown->Surrealdb_QueryFrame.fromUnknown->Option.isSome,
+    )
+    ->Expect.expect
+    ->Expect.toEqual((false, false, false))
   })
 
   test("remote-engine driver options construct a client through the public constructor surface", () => {
@@ -121,6 +174,7 @@ describe("SurrealDB helper surface", () => {
   })
 
   test("exported Features constants expose the SDK feature values", () => {
+    let emptyPayload: dict<unknown> = Dict.make()
     (
       Surrealdb_Features.liveQueries->Surrealdb_Feature.name,
       Surrealdb_Features.sessions->Surrealdb_Feature.name,
@@ -131,6 +185,12 @@ describe("SurrealDB helper surface", () => {
       Surrealdb_Features.surrealMl->Surrealdb_Feature.name,
       Surrealdb_Features.fromString("sessions")->Option.map(Surrealdb_Feature.name),
       Surrealdb_Features.fromString("missing")->Option.isSome,
+      Surrealdb_Features.liveQueries->toUnknown->Surrealdb_Feature.isInstance,
+      emptyPayload->toUnknown->Surrealdb_Feature.isInstance,
+      Surrealdb_Features.liveQueries
+      ->toUnknown
+      ->Surrealdb_Feature.fromUnknown
+      ->Option.map(feature => feature->Surrealdb_Feature.toJSON->JSON.stringifyAny->Option.getOr("")),
     )
     ->Expect.expect
     ->Expect.toEqual((
@@ -143,6 +203,9 @@ describe("SurrealDB helper surface", () => {
       "surreal-ml",
       Some("sessions"),
       false,
+      true,
+      false,
+      Some("{\"name\":\"live-queries\"}"),
     ))
   })
 
@@ -169,8 +232,8 @@ describe("SurrealDB helper surface", () => {
     ))
   })
 
-  test("expression helpers include knn on the installed public SDK surface", () => {
-    let vector = floatArrayToUnknown([1.0, 2.0, 3.0])
+  test("expression builders include knn on the installed public SDK surface", () => {
+    let vector = [Surrealdb_JsValue.float(1.0), Surrealdb_JsValue.float(2.0), Surrealdb_JsValue.float(3.0)]->Surrealdb_JsValue.array
     let plain = Surrealdb_Expr.knn("embedding", vector, 10)->Surrealdb_Expr.toBoundQuery
     let metric = Surrealdb_Expr.knnWithMetric("embedding", vector, 10, "COSINE")->Surrealdb_Expr.toBoundQuery
     let ef = Surrealdb_Expr.knnWithEf("embedding", vector, 10, 50)->Surrealdb_Expr.toBoundQuery
@@ -239,11 +302,15 @@ describe("SurrealDB helper surface", () => {
 
     (
       Surrealdb_RecordId.makeWithUuidId("widgets", uuid)->Surrealdb_RecordId.toString,
-      Surrealdb_RecordId.makeWithUnknownId("widgets", [stringToUnknown("alpha"), intToUnknown(2)]->toUnknown)->Surrealdb_RecordId.toString,
-      Surrealdb_RecordId.makeFromTableWithUnknownId(
-        Surrealdb_Table.make("widgets"),
-        Dict.fromArray([("slug", stringToUnknown("alpha"))])->toUnknown,
+      Surrealdb_RecordId.makeWithIdValue(
+        "widgets",
+        Surrealdb_RecordId.ArrayId([JSON.Encode.string("alpha"), JSON.Encode.int(2)]),
       )->Surrealdb_RecordId.toString,
+      Surrealdb_RecordId.makeFromTableWithIdValue(
+        Surrealdb_Table.make("widgets"),
+        Surrealdb_RecordId.ObjectId(Dict.fromArray([("slug", JSON.Encode.string("alpha"))])),
+      )->Surrealdb_RecordId.toString,
+      Surrealdb_RecordId.makeWithNumberId("widgets", 2.5)->Surrealdb_RecordId.idValue,
       stringRecordId->Surrealdb_StringRecordId.fromStringRecordId->Surrealdb_StringRecordId.toString,
       Surrealdb_Decimal.fromScientificNotation("1.23e4")->Surrealdb_Decimal.toString,
     )
@@ -252,6 +319,7 @@ describe("SurrealDB helper surface", () => {
       "widgets:u\"550e8400-e29b-41d4-a716-446655440000\"",
       "widgets:[ s\"alpha\", 2 ]",
       "widgets:{ \"slug\": s\"alpha\" }",
+      Surrealdb_RecordId.NumberId(2.5),
       "widgets:alpha",
       "12300",
     ))
@@ -264,15 +332,15 @@ describe("SurrealDB helper surface", () => {
     let polygon = Surrealdb_GeometryPolygon.make(~outerBoundary=line)
     let range =
       Surrealdb_Range.make(
-        ~begin=Surrealdb_RangeBound.included(1),
-        ~end=Surrealdb_RangeBound.excluded(5),
+        ~begin=Surrealdb_RangeBound.included(intToUnknown(1)),
+        ~end=Surrealdb_RangeBound.excluded(intToUnknown(5)),
         (),
       )
     let recordIdRange =
       Surrealdb_RecordIdRange.make(
         ~table="widgets",
-        ~begin=Surrealdb_RangeBound.included("a"),
-        ~end=Surrealdb_RangeBound.excluded("z"),
+        ~begin=Surrealdb_RangeBound.included("a"->toUnknown),
+        ~end=Surrealdb_RangeBound.excluded("z"->toUnknown),
         (),
       )
 
@@ -287,17 +355,17 @@ describe("SurrealDB helper surface", () => {
       range->Surrealdb_Range.toString,
       range
       ->Surrealdb_Range.begin
-      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText),
+      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_BoundValue.toText),
       range
       ->Surrealdb_Range.end_
-      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText),
+      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_BoundValue.toText),
       recordIdRange->Surrealdb_RecordIdRange.toString,
       recordIdRange
       ->Surrealdb_RecordIdRange.begin
-      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText),
+      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_BoundValue.toText),
       recordIdRange
       ->Surrealdb_RecordIdRange.end_
-      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText),
+      ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_BoundValue.toText),
     )
     ->Expect.expect
     ->Expect.toEqual((
@@ -316,12 +384,21 @@ describe("SurrealDB helper surface", () => {
 
   test("value codec interface round-trips through the public SDK surface", () => {
     let codec = Surrealdb_CborCodec.default()->Surrealdb_ValueCodec.fromCborCodec
-    let encoded = codec->Surrealdb_ValueCodec.encode("alpha")
-    let decoded: string = codec->Surrealdb_ValueCodec.decode(encoded)
+    let encoded = codec->Surrealdb_ValueCodec.encode("alpha"->toUnknown)
+    let decoded =
+      codec->Surrealdb_ValueCodec.decodeWith(encoded, raw =>
+        switch raw->Surrealdb_Value.fromUnknown {
+        | String(value) => Some(value)
+        | _ => None
+        }
+      )
 
     (
       encoded->Surrealdb_ValueCodec.encodedLength > 0,
-      decoded,
+      switch decoded {
+      | Ok(value) => value
+      | Error(_) => "<decode-error>"
+      },
     )
     ->Expect.expect
     ->Expect.toEqual((
@@ -345,9 +422,9 @@ describe("SurrealDB helper surface", () => {
         (),
       )
     let context = Surrealdb_DriverContext.make(~options, ~uniqueId=(() => "engine-test"), ~codecs=codecRegistry)
-    let rawContext = context->Surrealdb_DriverContext.toUnknown
-    let wsEngine = engines->Surrealdb_RemoteEngines.ws->Surrealdb_RemoteEngines.instantiate(rawContext)
-    let httpEngine = engines->Surrealdb_RemoteEngines.http->Surrealdb_RemoteEngines.instantiate(rawContext)
+    let wsEngine = context->Surrealdb_DriverContext.instantiate(engines->Surrealdb_RemoteEngines.ws)
+    let httpEngine =
+      context->Surrealdb_DriverContext.instantiate(engines->Surrealdb_RemoteEngines.http)
 
     (
       wsEngine->Surrealdb_RpcEngine.fromEngine->Option.isSome,

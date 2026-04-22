@@ -1,11 +1,26 @@
-let validation: string
-let configuration: string
-let thrown: string
-let query: string
-let serialization: string
-let notAllowed: string
-let notFound: string
-let alreadyExists: string
-let connection: string
-let internal: string
-let all: array<string>
+type t =
+  | Validation
+  | Configuration
+  | Thrown
+  | Query
+  | Serialization
+  | NotAllowed
+  | NotFound
+  | AlreadyExists
+  | Connection
+  | Internal
+  | Raw(string)
+
+let validation: t
+let configuration: t
+let thrown: t
+let query: t
+let serialization: t
+let notAllowed: t
+let notFound: t
+let alreadyExists: t
+let connection: t
+let internal: t
+let all: array<t>
+let fromString: string => t
+let toString: t => string

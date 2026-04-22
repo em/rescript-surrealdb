@@ -1,3 +1,8 @@
+type unsupported =
+  | BigIntValue(BigInt.t)
+  | FunctionValue
+  | SymbolValue
+
 type rec t =
   | None
   | Null
@@ -5,6 +10,7 @@ type rec t =
   | Int(int)
   | Float(float)
   | String(string)
+  | Unsupported(unsupported)
   | FileRef(Surrealdb_FileRef.t)
   | Future(Surrealdb_Future.t)
   | Decimal(Surrealdb_Decimal.t)

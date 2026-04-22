@@ -45,7 +45,7 @@ external asSurrealError: t => Surrealdb_SurrealError.t = "%identity"
 @module("surrealdb") external parseRpcError: rpcErrorObject => t = "parseRpcError"
 
 @obj
-external makeRpcErrorCause: (
+external makeRpcErrorCauseRaw: (
   ~message: string,
   ~kind: string=?,
   ~details: dict<unknown>=?,
@@ -54,7 +54,7 @@ external makeRpcErrorCause: (
 ) => rpcErrorCause = ""
 
 @obj
-external makeRpcErrorObject: (
+external makeRpcErrorObjectRaw: (
   ~code: int,
   ~message: string,
   ~kind: string=?,
@@ -63,7 +63,7 @@ external makeRpcErrorObject: (
   unit,
 ) => rpcErrorObject = ""
 
-@get external kind: t => string = "kind"
+@get external kindRaw: t => string = "kind"
 @get external code: t => int = "code"
 @get external detailsRaw: t => Nullable.t<detail> = "details"
 @get external causeRaw: t => Nullable.t<t> = "cause"
@@ -113,17 +113,41 @@ let isInstance = value =>
 let fromUnknown = value =>
   fromUnknownWith(~value, ~ctor, unsafeFromUnknown)
 
+let makeRpcErrorCause = (~message, ~kind=?, ~details=?, ~cause=?, ()) =>
+  switch kind {
+  | Some(value) =>
+    makeRpcErrorCauseRaw(~message, ~kind=value->Surrealdb_ErrorKind.toString, ~details?, ~cause?, ())
+  | None => makeRpcErrorCauseRaw(~message, ~details?, ~cause?, ())
+  }
+
+let makeRpcErrorObject = (~code, ~message, ~kind=?, ~details=?, ~cause=?, ()) =>
+  switch kind {
+  | Some(value) =>
+    makeRpcErrorObjectRaw(
+      ~code,
+      ~message,
+      ~kind=value->Surrealdb_ErrorKind.toString,
+      ~details?,
+      ~cause?,
+      (),
+    )
+  | None => makeRpcErrorObjectRaw(~code, ~message, ~details?, ~cause?, ())
+  }
+
 let details = error =>
   error->detailsRaw->Nullable.toOption
 
 let cause = error =>
   error->causeRaw->Nullable.toOption
 
+let kind = error =>
+  error->kindRaw->Surrealdb_ErrorKind.fromString
+
 let detailKind = detail =>
   detail->detailKind_
 
 let detailData = detail =>
-  detail->detailDataRaw->Nullable.toOption
+  detail->detailDataRaw->Nullable.toOption->Option.map(Surrealdb_ErrorPayload.classifyDict)
 
 let parameterName = error =>
   error->validationParameterNameRaw->Nullable.toOption
@@ -191,11 +215,7 @@ let detailToJsonObject = detail => {
   switch detail->detailData {
   | Some(values) =>
     let detailsJson = Dict.make()
-    values
-    ->Dict.toArray
-    ->Array.forEach(((key, value)) =>
-      detailsJson->Dict.set(key, value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON)
-    )
+    values->Dict.toArray->Array.forEach(((key, value)) => detailsJson->Dict.set(key, value->Surrealdb_ErrorPayload.toJSON))
     payload->Dict.set("details", JSON.Encode.object(detailsJson))
   | None => ()
   }
@@ -211,7 +231,7 @@ let setOptionalString = (payload, key, value) =>
 let rec toJsonObject = error => {
   let payload = error->asSurrealError->Surrealdb_SurrealError.toJsonObject
   payload->Dict.set("sdkClass", JSON.Encode.string("ServerError"))
-  payload->Dict.set("kind", JSON.Encode.string(error->kind))
+  payload->Dict.set("kind", JSON.Encode.string(error->kind->Surrealdb_ErrorKind.toString))
   payload->Dict.set("code", JSON.Encode.int(error->code))
   switch error->details {
   | Some(value) => payload->Dict.set("details", value->detailToJsonObject->JSON.Encode.object)

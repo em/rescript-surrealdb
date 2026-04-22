@@ -4,6 +4,8 @@
 // options and .encode() / .decode().
 type t
 type options
+type decodeError = Surrealdb_CodecDecode.error =
+  | RejectedValue(unknown)
 
 @obj
 external makeOptions: (
@@ -16,8 +18,8 @@ external makeOptions: (
 @module("surrealdb") @new
 external makeRaw: options => t = "CborCodec"
 
-@send external encode: (t, 'value) => Js.TypedArray2.Uint8Array.t = "encode"
-@send external decode: (t, Js.TypedArray2.Uint8Array.t) => 'value = "decode"
+@send external encode: (t, unknown) => Js.TypedArray2.Uint8Array.t = "encode"
+@send external decodeRaw: (t, Js.TypedArray2.Uint8Array.t) => unknown = "decode"
 
 let make = (~useNativeDates=?, ~valueEncodeVisitor=?, ~valueDecodeVisitor=?, ()) =>
   makeRaw(makeOptions(~useNativeDates?, ~valueEncodeVisitor?, ~valueDecodeVisitor?, ()))
@@ -25,4 +27,7 @@ let make = (~useNativeDates=?, ~valueEncodeVisitor=?, ~valueDecodeVisitor=?, ())
 let default = () => make(())
 
 let decodeUnknown = (codec, bytes) =>
-  codec->decode(bytes)
+  codec->decodeRaw(bytes)
+
+let decodeWith = (codec, bytes, decodeFn) =>
+  codec->decodeUnknown(bytes)->Surrealdb_CodecDecode.decodeWithUnknown(decodeFn)

@@ -2,39 +2,51 @@
 // Concern: bind the BoundIncluded and BoundExcluded classes used by Range values.
 // Source: node_modules/surrealdb/dist/surrealdb.d.ts — Range bounds are represented by
 // BoundIncluded<T>, BoundExcluded<T>, or undefined.
-type included<'a>
-type excluded<'a>
+type t
+type rawIncluded
+type rawExcluded
 type includedCtor
 type excludedCtor
+type kind =
+  | Include
+  | Exclude
 
-type t<'a> =
-  | Included(included<'a>)
-  | Excluded(excluded<'a>)
+external toUnknown: 'a => unknown = "%identity"
+external unsafeFromUnknown: unknown => t = "%identity"
+external unsafeAsIncluded: t => rawIncluded = "%identity"
+external unsafeAsExcluded: t => rawExcluded = "%identity"
 
-@module("surrealdb") @new external includeValue: 'a => included<'a> = "BoundIncluded"
-@module("surrealdb") @new external excludeValue: 'a => excluded<'a> = "BoundExcluded"
+@module("surrealdb") @new external includeValueRaw: unknown => rawIncluded = "BoundIncluded"
+@module("surrealdb") @new external excludeValueRaw: unknown => rawExcluded = "BoundExcluded"
 @module("surrealdb") external includedCtor: includedCtor = "BoundIncluded"
 @module("surrealdb") external excludedCtor: excludedCtor = "BoundExcluded"
-external unsafeIncludedFromUnknown: unknown => included<'a> = "%identity"
-external unsafeExcludedFromUnknown: unknown => excluded<'a> = "%identity"
-external unsafeToUnknown: 'a => unknown = "%identity"
+@get external includedValueOf: rawIncluded => unknown = "value"
+@get external excludedValueOf: rawExcluded => unknown = "value"
 
-@get external includedValueOf: included<'a> => 'a = "value"
-@get external excludedValueOf: excluded<'a> => 'a = "value"
+let included = value =>
+  value->includeValueRaw->toUnknown->unsafeFromUnknown
 
-let included = value => Included(includeValue(value))
-let excluded = value => Excluded(excludeValue(value))
+let excluded = value =>
+  value->excludeValueRaw->toUnknown->unsafeFromUnknown
 
-let value = bound =>
-  switch bound {
-  | Included(item) => item->includedValueOf
-  | Excluded(item) => item->excludedValueOf
+let kind = bound =>
+  if JsTypeReflection.instanceOfClass(~instance=bound, ~class_=includedCtor) {
+    Include
+  } else {
+    Exclude
   }
 
-let toUnknown = bound =>
-  switch bound {
-  | Included(item) => unsafeToUnknown(item)
-  | Excluded(item) => unsafeToUnknown(item)
+let isIncluded = bound =>
+  bound->kind == Include
+
+let isExcluded = bound =>
+  bound->kind == Exclude
+
+let value = bound =>
+  if bound->isIncluded {
+    bound->unsafeAsIncluded->includedValueOf->Surrealdb_BoundValue.fromUnknown
+  } else {
+    bound->unsafeAsExcluded->excludedValueOf->Surrealdb_BoundValue.fromUnknown
   }
 
 let isIncludedInstance = value =>
@@ -43,11 +55,14 @@ let isIncludedInstance = value =>
 let isExcludedInstance = value =>
   JsTypeReflection.instanceOfClass(~instance=value, ~class_=excludedCtor)
 
+let isInstance = value =>
+  isIncludedInstance(value) || isExcludedInstance(value)
+
 let fromUnknown = value =>
   if isIncludedInstance(value) {
-    Some(Included(unsafeIncludedFromUnknown(value)))
+    Some(unsafeFromUnknown(value))
   } else if isExcludedInstance(value) {
-    Some(Excluded(unsafeExcludedFromUnknown(value)))
+    Some(unsafeFromUnknown(value))
   } else {
     None
   }

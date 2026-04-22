@@ -1,26 +1,23 @@
 type t
-type driverOptions
 type connectAuth
 type providedAuth
 type authentication
 type connectOptions
 type reconnect
 type reconnectOptions
-type websocketImpl
-type fetchImpl
 type importInput
 
-let subscribe: (t, string, array<unknown> => unit) => unit => unit
+let subscribe: (t, string, array<Surrealdb_Value.t> => unit) => unit => unit
 let makeDefault: unit => t
 let driverOptions: (
   ~engines: Surrealdb_RemoteEngines.t=?,
   ~codecs: dict<Surrealdb_ValueCodec.factory>=?,
   ~codecOptions: Surrealdb_CborCodec.options=?,
-  ~websocketImpl: websocketImpl=?,
-  ~fetchImpl: fetchImpl=?,
+  ~websocketImpl: Surrealdb_DriverOptions.websocketImpl=?,
+  ~fetchImpl: Surrealdb_DriverOptions.fetchImpl=?,
   unit,
-) => driverOptions
-let makeWithOptions: driverOptions => t
+) => Surrealdb_DriverOptions.t
+let makeWithOptions: Surrealdb_DriverOptions.t => t
 let asQueryable: t => Surrealdb_Queryable.t
 let asSession: t => Surrealdb_Session.t
 let makeConnectOptions: (
@@ -64,8 +61,8 @@ let importStringInput: string => importInput
 let importBlobInput: Webapi.Blob.t => importInput
 let importStreamInput: Webapi.ReadableStream.t => importInput
 let nullProvidedAuth: providedAuth
-let defaultWebSocketImpl: websocketImpl
-let defaultFetchImpl: fetchImpl
+let defaultWebSocketImpl: Surrealdb_DriverOptions.websocketImpl
+let defaultFetchImpl: Surrealdb_DriverOptions.fetchImpl
 let connectRaw: (t, string, connectOptions) => promise<bool>
 let connectUrlRaw: (t, Webapi.Url.t, connectOptions) => promise<bool>
 let isConnected: t => bool
@@ -85,8 +82,8 @@ let withOptions: (
   ~engines: Surrealdb_RemoteEngines.t=?,
   ~codecs: dict<Surrealdb_ValueCodec.factory>=?,
   ~codecOptions: Surrealdb_CborCodec.options=?,
-  ~websocketImpl: websocketImpl=?,
-  ~fetchImpl: fetchImpl=?,
+  ~websocketImpl: Surrealdb_DriverOptions.websocketImpl=?,
+  ~fetchImpl: Surrealdb_DriverOptions.fetchImpl=?,
   unit,
 ) => t
 let withRemoteEngines: Surrealdb_RemoteEngines.t => t

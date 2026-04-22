@@ -2,7 +2,6 @@ type t
 type ctor
 
 let asEngine: t => Surrealdb_Engine.t
-let unsafeFromEngine: Surrealdb_Engine.t => t
 let ctor: ctor
 let health: t => promise<unit>
 let version: t => promise<Surrealdb_VersionInfo.t>

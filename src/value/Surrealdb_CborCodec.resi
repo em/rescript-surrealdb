@@ -1,5 +1,7 @@
 type t
 type options
+type decodeError = Surrealdb_CodecDecode.error =
+  | RejectedValue(unknown)
 
 let makeOptions: (
   ~useNativeDates: bool=?,
@@ -8,8 +10,7 @@ let makeOptions: (
   unit,
 ) => options
 let makeRaw: options => t
-let encode: (t, 'value) => Js.TypedArray2.Uint8Array.t
-let decode: (t, Js.TypedArray2.Uint8Array.t) => 'value
+let encode: (t, unknown) => Js.TypedArray2.Uint8Array.t
 let make: (
   ~useNativeDates: bool=?,
   ~valueEncodeVisitor: (unknown => unknown)=?,
@@ -17,4 +18,5 @@ let make: (
   unit,
 ) => t
 let default: unit => t
-let decodeUnknown: (t, Js.TypedArray2.Uint8Array.t) => 'value
+let decodeUnknown: (t, Js.TypedArray2.Uint8Array.t) => unknown
+let decodeWith: (t, Js.TypedArray2.Uint8Array.t, unknown => option<'value>) => result<'value, decodeError>

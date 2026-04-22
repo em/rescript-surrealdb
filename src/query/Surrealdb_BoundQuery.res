@@ -15,7 +15,7 @@ external mergeBindings: (dict<Surrealdb_JsValue.t>, dict<Surrealdb_JsValue.t>) =
 @send external appendQuery: (t, t) => t = "append"
 @send external appendText: (t, string) => t = "append"
 @send external appendString: (t, string, dict<Surrealdb_JsValue.t>) => t = "append"
-@send @variadic external appendTemplate: (t, array<string>, array<unknown>) => t = "append"
+@send @variadic external appendTemplate: (t, array<string>, array<Surrealdb_JsValue.t>) => t = "append"
 
 @get external query: t => string = "query"
 @get external bindings: t => dict<Surrealdb_JsValue.t> = "bindings"

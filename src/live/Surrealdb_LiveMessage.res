@@ -7,4 +7,7 @@ type t
 @get external queryId: t => Surrealdb_Uuid.t = "queryId"
 @get external action: t => string = "action"
 @get external recordId: t => Surrealdb_RecordId.t = "recordId"
-@get external value: t => unknown = "value"
+@get external valueRaw: t => unknown = "value"
+
+let value = message =>
+  message->valueRaw->Surrealdb_Value.fromUnknown

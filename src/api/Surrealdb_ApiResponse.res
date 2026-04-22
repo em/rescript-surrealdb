@@ -9,7 +9,7 @@ type t
 @get external statusRaw: t => Nullable.t<int> = "status"
 
 let body = response =>
-  response->bodyRaw->Nullable.toOption
+  response->bodyRaw->Nullable.toOption->Option.map(Surrealdb_Value.fromUnknown)
 
 let headers = response =>
   response->headersRaw->Nullable.toOption
@@ -34,7 +34,7 @@ let toJsonObject = response => {
   }
   switch response->body {
   | Some(value) =>
-    payload->Dict.set("body", value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON)
+    payload->Dict.set("body", value->Surrealdb_Value.toJSON)
   | None => ()
   }
   payload

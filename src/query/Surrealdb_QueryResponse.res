@@ -13,7 +13,7 @@ let stats = response =>
   response->statsRaw->Nullable.toOption
 
 let result = response =>
-  response->resultRaw->Nullable.toOption
+  response->resultRaw->Nullable.toOption->Option.map(Surrealdb_Value.fromUnknown)
 
 let error = response =>
   response->errorRaw->Nullable.toOption

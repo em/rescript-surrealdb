@@ -5,14 +5,19 @@ export default {
       "tests/TestRuntime.mjs",
       "tests/SurrealdbTestContext.mjs",
       "tests/support/**",
-      "tests/connection/**",
     ],
     environment: "node",
     fileParallelism: false,
+    globalSetup: ["./tests/support/globalSetup.mjs"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.mjs"],
-      exclude: ["src/Surrealdb.mjs"]
+      thresholds: {
+        statements: 50,
+        branches: 50,
+        functions: 50,
+        lines: 50,
+      },
     }
   }
 }

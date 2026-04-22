@@ -28,6 +28,10 @@ export function publisherPublish(publisher, event, payload) {
   publisher.publish(event, ...payload);
 }
 
+export function callEngineFactory(context, factory) {
+  return factory(context);
+}
+
 export function uint8ArrayToArray(bytes) {
   return Array.from(bytes);
 }

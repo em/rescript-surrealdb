@@ -1,11 +1,8 @@
 open TestRuntime
 
-external intToUnknown: int => unknown = "%identity"
-external stringToUnknown: string => unknown = "%identity"
-
 let payloadToString = payload =>
   payload
-  ->Array.map(value => value->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON)
+  ->Array.map(Surrealdb_Value.toJSON)
   ->JSON.Encode.array
   ->JSON.stringifyAny
   ->Option.getOr("")
@@ -27,7 +24,7 @@ describe("SurrealDB stream utilities", () => {
       seen.contents = payload->payloadToString
     })
     let first = publisher->Surrealdb_Publisher.subscribeFirst(["tick"])
-    publisher->Surrealdb_Publisher.publish("tick", [stringToUnknown("alpha"), intToUnknown(2)])
+    publisher->Surrealdb_Publisher.publish("tick", [Surrealdb_JsValue.string("alpha"), Surrealdb_JsValue.int(2)])
     let resolvedPayload = await first
     unsubscribe()
     seen.contents->Expect.expect->Expect.toBe("[\"alpha\",2]")

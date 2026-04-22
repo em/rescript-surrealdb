@@ -1,6 +1,5 @@
 type t
 
-let toUnknown: t => unknown
 let close: t => promise<unit>
 let ready: t => unit
 let featuresSet: t => Set.t<Surrealdb_Feature.t>

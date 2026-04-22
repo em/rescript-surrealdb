@@ -28,7 +28,7 @@ let internalCtor: ctor
 let parseRpcError: rpcErrorObject => t
 let makeRpcErrorCause: (
   ~message: string,
-  ~kind: string=?,
+  ~kind: Surrealdb_ErrorKind.t=?,
   ~details: dict<unknown>=?,
   ~cause: rpcErrorCause=?,
   unit,
@@ -36,17 +36,16 @@ let makeRpcErrorCause: (
 let makeRpcErrorObject: (
   ~code: int,
   ~message: string,
-  ~kind: string=?,
+  ~kind: Surrealdb_ErrorKind.t=?,
   ~details: dict<unknown>=?,
   ~cause: rpcErrorCause=?,
   unit,
 ) => rpcErrorObject
-let kind: t => string
+let kindRaw: t => string
+let kind: t => Surrealdb_ErrorKind.t
 let code: t => int
 let detailsRaw: t => Nullable.t<detail>
-let causeRaw: t => Nullable.t<t>
 let detailKind_: detail => string
-let detailDataRaw: detail => Nullable.t<dict<unknown>>
 let validationIsParseError: validation => bool
 let validationParameterNameRaw: validation => Nullable.t<string>
 let configurationIsLiveQueryNotSupported: configuration => bool
@@ -74,7 +73,7 @@ let fromUnknown: unknown => option<t>
 let details: t => option<detail>
 let cause: t => option<t>
 let detailKind: detail => string
-let detailData: detail => option<dict<unknown>>
+let detailData: detail => option<dict<Surrealdb_ErrorPayload.t>>
 let parameterName: validation => option<string>
 let timeout: query => option<timeout>
 let methodName: notAllowed => option<string>

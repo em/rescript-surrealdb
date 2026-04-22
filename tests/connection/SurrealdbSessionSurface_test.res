@@ -1,5 +1,12 @@
 open TestRuntime
 external toUnknown: 'a => unknown = "%identity"
+@obj
+external makeRawApiResponse: (
+  ~body: Nullable.t<unknown>=?,
+  ~headers: Nullable.t<dict<string>>=?,
+  ~status: Nullable.t<int>=?,
+  unit,
+) => Surrealdb_ApiResponse.t = ""
 @get external responseStatus: Webapi.Fetch.Response.t => int = "status"
 
 let closeIgnore = db =>
@@ -22,8 +29,8 @@ let objectIntFieldText = (raw, fieldName) =>
   }
 
 let diagnosticPhase = event =>
-  switch event->Surrealdb_Value.fromUnknown {
-  | Object(entries) =>
+  switch event {
+  | Surrealdb_Value.Object(entries) =>
     switch (
       entries->Dict.get("type")->Option.map(Surrealdb_Value.toText),
       entries->Dict.get("phase")->Option.map(Surrealdb_Value.toText),
@@ -103,6 +110,21 @@ let namespaceDatabaseSelection = () =>
 
 let expectedUsingSelectionJson = () =>
   Some(`{"namespace":"${namespace()}","database":"${database()}"}`)
+
+let liveMessageSummary = message =>
+  (
+    message->Surrealdb_LiveMessage.queryId->Surrealdb_Uuid.toString,
+    message->Surrealdb_LiveMessage.action,
+    message->Surrealdb_LiveMessage.recordId->Surrealdb_RecordId.toString,
+    switch message->Surrealdb_LiveMessage.value {
+    | Object(entries) =>
+      (
+        entries->Dict.get("value")->Option.map(Surrealdb_Value.toText),
+        entries->Dict.get("label")->Option.map(Surrealdb_Value.toText),
+      )
+    | value => (Some(`unexpected:${value->Surrealdb_Value.toText}`), None)
+    },
+  )
 
 describe("SurrealDB session surface", () => {
   testAsync("connect options map to the installed public SDK surface", async () => {
@@ -190,7 +212,7 @@ describe("SurrealDB session surface", () => {
     let db =
       Surrealdb_RemoteEngines.create()
       ->Surrealdb_RemoteEngines.applyDiagnostics(event =>
-          switch event->toUnknown->diagnosticPhase {
+          switch event->diagnosticPhase {
           | Some(value) =>
             if Array.length(phases.contents) < 8 {
               phases.contents = Array.concat(phases.contents, [value])
@@ -419,6 +441,34 @@ describe("SurrealDB session surface", () => {
     }
   })
 
+  test("api response accessors keep optional fields honest", () => {
+    let headers = Dict.fromArray([("x-one", "1")])
+    let empty = makeRawApiResponse()
+    let nullish =
+      makeRawApiResponse(~body=Nullable.null, ~headers=Nullable.null, ~status=Nullable.null, ())
+    let present =
+      makeRawApiResponse(
+        ~body=Nullable.make("alpha"->toUnknown),
+        ~headers=Nullable.make(headers),
+        ~status=Nullable.make(201),
+        (),
+      )
+
+    (
+      empty->Surrealdb_ApiResponse.status,
+      empty->Surrealdb_ApiResponse.headers->Option.isSome,
+      empty->Surrealdb_ApiResponse.body->Option.isSome,
+      nullish->Surrealdb_ApiResponse.status,
+      nullish->Surrealdb_ApiResponse.headers->Option.isSome,
+      nullish->Surrealdb_ApiResponse.body->Option.isSome,
+      present->Surrealdb_ApiResponse.status,
+      present->Surrealdb_ApiResponse.headers->Option.flatMap(headers => headers->Dict.get("x-one")),
+      present->Surrealdb_ApiResponse.body->Option.map(Surrealdb_Value.toText),
+    )
+    ->Expect.expect
+    ->Expect.toEqual((None, false, false, None, false, false, Some(201), Some("1"), Some("alpha")))
+  })
+
   testAsync("api promises are directly awaitable and value() rejects unsuccessful responses", async () => {
     let db = Surrealdb_Surreal.make()
     try {
@@ -446,7 +496,7 @@ describe("SurrealDB session surface", () => {
 
       (
         response->Surrealdb_ApiResponse.status,
-        response->Surrealdb_ApiResponse.body->Option.map(Surrealdb_Value.fromUnknown)->Option.map(Surrealdb_Value.toText),
+        response->Surrealdb_ApiResponse.body->Option.map(Surrealdb_Value.toText),
         rejected,
       )
       ->Expect.expect
@@ -455,6 +505,41 @@ describe("SurrealDB session surface", () => {
         Some("Not found"),
         "get:/missing:404",
       ))
+
+      await closeIgnore(db)
+    } catch {
+    | error =>
+      await closeIgnore(db)
+      throw(error)
+    }
+  })
+
+  testAsync("api promise then_ delivers the installed response type into the callback", async () => {
+    let db = Surrealdb_Surreal.make()
+    let callbackStatus = ref(None)
+    let callbackBody = ref(None)
+    try {
+      await connectServerDatabase(db)
+
+      let api = db->Surrealdb_Surreal.asQueryable->Surrealdb_Api.fromQueryable
+      let response =
+        await api
+        ->Surrealdb_Api.get_("/missing")
+        ->Surrealdb_ApiPromise.then_(response => {
+            callbackStatus.contents = response->Surrealdb_ApiResponse.status
+            callbackBody.contents =
+              response->Surrealdb_ApiResponse.body->Option.map(Surrealdb_Value.toText)
+            response
+          })
+
+      (
+        callbackStatus.contents,
+        callbackBody.contents,
+        response->Surrealdb_ApiResponse.status,
+        response->Surrealdb_ApiResponse.body->Option.map(Surrealdb_Value.toText),
+      )
+      ->Expect.expect
+      ->Expect.toEqual((Some(404), Some("Not found"), Some(404), Some("Not found")))
 
       await closeIgnore(db)
     } catch {
@@ -616,13 +701,12 @@ describe("SurrealDB session surface", () => {
       (
         query->Surrealdb_Query.inner->Surrealdb_BoundQuery.query,
         query->Surrealdb_Query.inner->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
-        awaited->Array.map(value => value->toUnknown->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText),
+        awaited->Array.map(Surrealdb_Value.toText),
         responses->Array.length,
         responses->Array.get(0)->Option.map(Surrealdb_QueryResponse.success),
         responses->Array.get(0)->Option.flatMap(Surrealdb_QueryResponse.type_),
         responses->Array.get(0)
         ->Option.flatMap(Surrealdb_QueryResponse.result)
-        ->Option.map(Surrealdb_Value.fromUnknown)
         ->Option.map(Surrealdb_Value.toText),
         runCompiled->Surrealdb_BoundQuery.query,
         runJsonCompiled->Surrealdb_BoundQuery.query,
@@ -666,12 +750,12 @@ describe("SurrealDB session surface", () => {
       let errorFrame =
         frames
         ->Array.get(2)
-        ->Option.flatMap(Surrealdb_Frame.asError)
+        ->Option.flatMap(Surrealdb_QueryFrame.asError)
         ->Option.getOrThrow
 
       let thrown =
         try {
-          errorFrame->Surrealdb_Frame.throw_
+          errorFrame->Surrealdb_QueryFrame.throw_
         } catch {
         | JsExn(jsError) =>
           switch jsError->toUnknown->Surrealdb_ServerError.fromUnknown {
@@ -683,10 +767,10 @@ describe("SurrealDB session surface", () => {
 
       (
         frames->Array.length,
-        frames->Array.get(0)->Option.map(frame => (frame->Surrealdb_Frame.isValue_, frame->Surrealdb_Frame.query)),
-        frames->Array.get(1)->Option.map(frame => (frame->Surrealdb_Frame.isDone_, frame->Surrealdb_Frame.query)),
-        frames->Array.get(2)->Option.map(frame => (frame->Surrealdb_Frame.isError_, frame->Surrealdb_Frame.query)),
-        errorFrame->Surrealdb_Frame.errorValue->Surrealdb_ServerError.kind,
+        frames->Array.get(0)->Option.map(frame => (frame->Surrealdb_QueryFrame.isValue_, frame->Surrealdb_QueryFrame.query)),
+        frames->Array.get(1)->Option.map(frame => (frame->Surrealdb_QueryFrame.isDone_, frame->Surrealdb_QueryFrame.query)),
+        frames->Array.get(2)->Option.map(frame => (frame->Surrealdb_QueryFrame.isError_, frame->Surrealdb_QueryFrame.query)),
+        errorFrame->Surrealdb_QueryFrame.errorValue->Surrealdb_ServerError.kind,
         thrown,
       )
       ->Expect.expect
@@ -695,7 +779,7 @@ describe("SurrealDB session surface", () => {
         Some((true, 0)),
         Some((true, 0)),
         Some((true, 1)),
-        "Thrown",
+        Surrealdb_ErrorKind.thrown,
         "An error occurred: boom",
       ))
 
@@ -742,7 +826,7 @@ describe("SurrealDB session surface", () => {
           "no error"
         } catch {
         | JsExn(jsError) =>
-          switch jsError->Surrealdb_ClientError.asHttpConnection {
+          switch jsError->toUnknown->Surrealdb_ClientError.asHttpConnection {
           | Some(error) => `${error->Surrealdb_ClientError.httpConnectionStatus->Int.toString}:${error->Surrealdb_ClientError.httpConnectionStatusText}`
           | None => jsError->JsExn.message->Option.getOr("unexpected js error")
           }
@@ -828,11 +912,9 @@ describe("SurrealDB session surface", () => {
         ->Surrealdb_Live.awaitManaged
       let queryId =
         switch await db->Surrealdb_Query.text(`LIVE SELECT * FROM ${tableName}`, ())->Surrealdb_Query.resolve {
+        | [Uuid(value)] => value
         | [rawValue] =>
-          switch Surrealdb_Uuid.fromUnknown(rawValue) {
-          | Some(value) => value
-          | None => throw(Failure("LIVE SELECT result did not return a Uuid"))
-          }
+          throw(Failure(`LIVE SELECT result did not return a Uuid: ${rawValue->Surrealdb_Value.toText}`))
         | _ => throw(Failure("LIVE SELECT did not return exactly one result"))
         }
       let unmanaged =
@@ -851,6 +933,57 @@ describe("SurrealDB session surface", () => {
       )
       ->Expect.expect
       ->Expect.toEqual((true, false, true, false, true, false))
+
+      let managedMessages = Surrealdb_ChannelIterator.make()
+      let unmanagedMessages = Surrealdb_ChannelIterator.make()
+      let unsubscribeManaged =
+        managed->Surrealdb_LiveSubscription.subscribe(message =>
+          managedMessages->Surrealdb_ChannelIterator.submit(message)
+        )
+      let unsubscribeUnmanaged =
+        unmanaged->Surrealdb_LiveSubscription.subscribe(message =>
+          unmanagedMessages->Surrealdb_ChannelIterator.submit(message)
+        )
+
+      ignore(
+        await db
+        ->Surrealdb_Surreal.asQueryable
+        ->Surrealdb_Create.recordOn(tableName, "alpha")
+        ->Surrealdb_Create.content(
+            Dict.fromArray([
+              ("value", Surrealdb_JsValue.int(2)),
+              ("label", Surrealdb_JsValue.string("alpha")),
+            ]),
+          )
+        ->Surrealdb_Create.resolve,
+      )
+
+      let managedObserved = await managedMessages->Surrealdb_ChannelIterator.next
+      let unmanagedObserved = await unmanagedMessages->Surrealdb_ChannelIterator.next
+      unsubscribeManaged()
+      unsubscribeUnmanaged()
+      managedMessages->Surrealdb_ChannelIterator.cancel
+      unmanagedMessages->Surrealdb_ChannelIterator.cancel
+
+      (
+        managedObserved->Surrealdb_ChannelIterator.value->Option.map(liveMessageSummary),
+        unmanagedObserved->Surrealdb_ChannelIterator.value->Option.map(liveMessageSummary),
+      )
+      ->Expect.expect
+      ->Expect.toEqual((
+        Some((
+          managed->Surrealdb_LiveSubscription.id->Surrealdb_Uuid.toString,
+          "CREATE",
+          "widgets:alpha",
+          (Some("2"), Some("alpha")),
+        )),
+        Some((
+          unmanaged->Surrealdb_LiveSubscription.id->Surrealdb_Uuid.toString,
+          "CREATE",
+          "widgets:alpha",
+          (Some("2"), Some("alpha")),
+        )),
+      ))
 
       await killIgnore(managed)
       await killIgnore(unmanaged)
@@ -873,7 +1006,7 @@ describe("SurrealDB session surface", () => {
       db->Surrealdb_Surreal.subscribe("connected", payload =>
         switch payload {
         | [version] =>
-          connectedVersion.contents = Some(version->Surrealdb_Value.fromUnknown->Surrealdb_Value.toText)
+          connectedVersion.contents = Some(version->Surrealdb_Value.toText)
         | _ => ()
         }
       )
@@ -882,7 +1015,7 @@ describe("SurrealDB session surface", () => {
         switch payload {
         | [tokens] =>
           authTokenSeen.contents =
-            switch tokens->Surrealdb_Value.fromUnknown {
+            switch tokens {
             | Object(entries) => entries->Dict.get("access")->Option.isSome
             | _ => false
             }
@@ -894,10 +1027,7 @@ describe("SurrealDB session surface", () => {
         switch payload {
         | [selection] =>
           usingSelection.contents =
-            selection
-            ->Surrealdb_Value.fromUnknown
-            ->Surrealdb_Value.toJSON
-            ->JSON.stringifyAny
+            selection->Surrealdb_Value.toJSON->JSON.stringifyAny
         | _ => ()
         }
       )

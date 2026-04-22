@@ -28,7 +28,7 @@ jobs:
       - uses: changesets/action@v1
         with:
           version: npm run version-packages
-          publish: npm run release
+          publish: npm run release:ci
           commit: Version packages
           title: Version packages
         env:

@@ -1,1 +1,1 @@
-let values: (unknown, unknown) => bool
+let values: (Surrealdb_JsValue.t, Surrealdb_JsValue.t) => bool

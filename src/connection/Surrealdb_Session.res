@@ -9,7 +9,7 @@ type recordAccessAuth
 type namespaceDatabase
 
 @module("../support/Surrealdb_Interop.js")
-external subscribe: (t, string, array<unknown> => unit) => unit => unit = "subscribeEvent"
+external subscribeRaw: (t, string, array<unknown> => unit) => unit => unit = "subscribeEvent"
 
 @module("surrealdb") @scope("SurrealSession")
 external ofRaw: (t, Surrealdb_Uuid.t) => t = "of"
@@ -18,7 +18,7 @@ external asQueryable: t => Surrealdb_Queryable.t = "%identity"
 @get external namespaceRaw: t => Nullable.t<string> = "namespace"
 @get external databaseRaw: t => Nullable.t<string> = "database"
 @get external accessTokenRaw: t => Nullable.t<string> = "accessToken"
-@get external parameters: t => dict<unknown> = "parameters"
+@get external parametersRaw: t => dict<unknown> = "parameters"
 @get external sessionRaw: t => Nullable.t<Surrealdb_Uuid.t> = "session"
 @get external isValid: t => bool = "isValid"
 
@@ -108,6 +108,17 @@ let database = session =>
 
 let accessToken = session =>
   session->accessTokenRaw->Nullable.toOption
+
+let subscribe = (session, event, listener) =>
+  session->subscribeRaw(event, payload => listener(payload->Array.map(Surrealdb_Value.fromUnknown)))
+
+let parameters = session => {
+  let values = Dict.make()
+  session->parametersRaw->Dict.toArray->Array.forEach(((key, value)) =>
+    values->Dict.set(key, value->Surrealdb_Value.fromUnknown)
+  )
+  values
+}
 
 let sessionId = session =>
   session->sessionRaw->Nullable.toOption

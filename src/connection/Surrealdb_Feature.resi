@@ -8,4 +8,5 @@ let sinceVersion: t => option<string>
 let untilVersion: t => option<string>
 let toJsonObject: t => dict<JSON.t>
 let toJSON: t => JSON.t
-let toJSONFromUnknown: unknown => JSON.t
+let isInstance: unknown => bool
+let fromUnknown: unknown => option<t>

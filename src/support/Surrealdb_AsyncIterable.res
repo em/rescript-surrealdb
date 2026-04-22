@@ -1,6 +1,6 @@
 // src/bindings/Surrealdb_AsyncIterable.res — JavaScript AsyncIterable boundary.
 // Concern: consume SDK stream() results from ReScript without narrowing the SDK
-// surface to callback-only helpers.
+// surface to callback-only adapters.
 type t<'value>
 
 @module("./Surrealdb_Interop.js")

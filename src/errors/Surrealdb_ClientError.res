@@ -25,6 +25,9 @@ type invalidRecordId
 type invalidDuration
 type invalidDecimal
 type invalidTable
+type featureValue =
+  | Feature(Surrealdb_Feature.t)
+  | ForeignPayload(Surrealdb_ErrorPayload.t)
 
 external toUnknown: 'a => unknown = "%identity"
 external unsafeCallTerminatedFromUnknown: unknown => callTerminated = "%identity"
@@ -75,7 +78,7 @@ external unsafeInvalidTableFromUnknown: unknown => invalidTable = "%identity"
 @module("surrealdb") external invalidDecimalCtor: ctor = "InvalidDecimalError"
 @module("surrealdb") external invalidTableCtor: ctor = "InvalidTableError"
 
-@get external unexpectedServerResponseResponse: unexpectedServerResponse => unknown = "response"
+@get external unexpectedServerResponseResponseRaw: unexpectedServerResponse => unknown = "response"
 @get external unsupportedEngineName: unsupportedEngine => string = "engine"
 @get external httpConnectionStatus: httpConnection => int = "status"
 @get external httpConnectionStatusText: httpConnection => string = "statusText"
@@ -83,9 +86,9 @@ external unsafeInvalidTableFromUnknown: unknown => invalidTable = "%identity"
 @get external unsupportedVersionVersion: unsupportedVersion => string = "version"
 @get external unsupportedVersionMinimum: unsupportedVersion => string = "minimum"
 @get external unsupportedVersionMaximum: unsupportedVersion => string = "maximum"
-@get external publishCauses: publish => array<unknown> = "causes"
-@get external unsupportedFeatureValue: unsupportedFeature => unknown = "feature"
-@get external unavailableFeatureValue: unavailableFeature => unknown = "feature"
+@get external publishCausesRaw: publish => array<unknown> = "causes"
+@get external unsupportedFeatureValueRaw: unsupportedFeature => unknown = "feature"
+@get external unavailableFeatureValueRaw: unavailableFeature => unknown = "feature"
 @get external unavailableFeatureVersion: unavailableFeature => string = "version"
 @get external invalidSessionRaw: invalidSession => Nullable.t<Surrealdb_Uuid.t> = "session"
 @get external unsuccessfulApiPath: unsuccessfulApi => string = "path"
@@ -205,11 +208,140 @@ let asInvalidDecimal = error =>
 let asInvalidTable = error =>
   fromUnknownWith(~value=toUnknown(error), ~ctor=invalidTableCtor, unsafeInvalidTableFromUnknown)
 
+let isInstance = error =>
+  switch asCallTerminated(error) {
+  | Some(_) => true
+  | None =>
+    switch asReconnectExhaustion(error) {
+    | Some(_) => true
+    | None =>
+      switch asReconnectIteration(error) {
+      | Some(_) => true
+      | None =>
+        switch asUnexpectedServerResponse(error) {
+        | Some(_) => true
+        | None =>
+          switch asUnexpectedConnection(error) {
+          | Some(_) => true
+          | None =>
+            switch asUnsupportedEngine(error) {
+            | Some(_) => true
+            | None =>
+              switch asConnectionUnavailable(error) {
+              | Some(_) => true
+              | None =>
+                switch asMissingNamespaceDatabase(error) {
+                | Some(_) => true
+                | None =>
+                  switch asHttpConnection(error) {
+                  | Some(_) => true
+                  | None =>
+                    switch asAuthentication(error) {
+                    | Some(_) => true
+                    | None =>
+                      switch asLiveSubscription(error) {
+                      | Some(_) => true
+                      | None =>
+                        switch asUnsupportedVersion(error) {
+                        | Some(_) => true
+                        | None =>
+                          switch asExpression(error) {
+                          | Some(_) => true
+                          | None =>
+                            switch asPublish(error) {
+                            | Some(_) => true
+                            | None =>
+                              switch asInvalidDate(error) {
+                              | Some(_) => true
+                              | None =>
+                                switch asUnsupportedFeature(error) {
+                                | Some(_) => true
+                                | None =>
+                                  switch asUnavailableFeature(error) {
+                                  | Some(_) => true
+                                  | None =>
+                                    switch asInvalidSession(error) {
+                                    | Some(_) => true
+                                    | None =>
+                                      switch asUnsuccessfulApi(error) {
+                                      | Some(_) => true
+                                      | None =>
+                                        switch asInvalidRecordId(error) {
+                                        | Some(_) => true
+                                        | None =>
+                                          switch asInvalidDuration(error) {
+                                          | Some(_) => true
+                                          | None =>
+                                            switch asInvalidDecimal(error) {
+                                            | Some(_) => true
+                                            | None =>
+                                              switch asInvalidTable(error) {
+                                              | Some(_) => true
+                                              | None => false
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
 let invalidSession = error =>
   error->invalidSessionRaw->Nullable.toOption
 
+let unexpectedServerResponseResponse = error =>
+  error->unexpectedServerResponseResponseRaw->Surrealdb_ErrorPayload.fromUnknown
+
+let publishCauses = error =>
+  error->publishCausesRaw->Array.map(rawCause =>
+    switch rawCause->Surrealdb_SurrealError.fromUnknown {
+    | Some(causeError) => Surrealdb_SurrealError.Error(causeError)
+    | None => Surrealdb_SurrealError.ForeignPayload(rawCause->Surrealdb_ErrorPayload.fromUnknown)
+    }
+  )
+
+let featureValueFromUnknown = rawValue =>
+  switch rawValue->Surrealdb_Feature.fromUnknown {
+  | Some(feature) => Feature(feature)
+  | None => ForeignPayload(rawValue->Surrealdb_ErrorPayload.fromUnknown)
+  }
+
+let unsupportedFeatureValue = error =>
+  error->unsupportedFeatureValueRaw->featureValueFromUnknown
+
+let unavailableFeatureValue = error =>
+  error->unavailableFeatureValueRaw->featureValueFromUnknown
+
 let setSdkClass = (payload, value) =>
   payload->Dict.set("sdkClass", JSON.Encode.string(value))
+
+let causeToJson = cause =>
+  switch cause {
+  | Surrealdb_SurrealError.Error(error) => error->Surrealdb_SurrealError.toJsonObject->JSON.Encode.object
+  | Surrealdb_SurrealError.ForeignPayload(payload) => payload->Surrealdb_ErrorPayload.toJSON
+  }
+
+let featureValueToJson = value =>
+  switch value {
+  | Feature(feature) => feature->Surrealdb_Feature.toJSON
+  | ForeignPayload(payload) => payload->Surrealdb_ErrorPayload.toJSON
+  }
 
 let toJsonObject = error => {
   let payload = error->Surrealdb_SurrealError.toJsonObject
@@ -230,10 +362,7 @@ let toJsonObject = error => {
   switch error->asUnexpectedServerResponse {
   | Some(value) =>
     payload->setSdkClass("UnexpectedServerResponseError")
-    payload->Dict.set(
-      "response",
-      value->unexpectedServerResponseResponse->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON,
-    )
+    payload->Dict.set("response", value->unexpectedServerResponseResponse->Surrealdb_ErrorPayload.toJSON)
   | None => ()
   }
   switch error->asUnexpectedConnection {
@@ -290,9 +419,7 @@ let toJsonObject = error => {
     payload->setSdkClass("PublishError")
     payload->Dict.set(
       "causes",
-      JSON.Encode.array(
-        value->publishCauses->Array.map(cause => cause->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON),
-      ),
+      JSON.Encode.array(value->publishCauses->Array.map(causeToJson)),
     )
   | None => ()
   }
@@ -303,19 +430,13 @@ let toJsonObject = error => {
   switch error->asUnsupportedFeature {
   | Some(value) =>
     payload->setSdkClass("UnsupportedFeatureError")
-    payload->Dict.set(
-      "feature",
-      value->unsupportedFeatureValue->Surrealdb_Feature.toJSONFromUnknown,
-    )
+    payload->Dict.set("feature", value->unsupportedFeatureValue->featureValueToJson)
   | None => ()
   }
   switch error->asUnavailableFeature {
   | Some(value) =>
     payload->setSdkClass("UnavailableFeatureError")
-    payload->Dict.set(
-      "feature",
-      value->unavailableFeatureValue->Surrealdb_Feature.toJSONFromUnknown,
-    )
+    payload->Dict.set("feature", value->unavailableFeatureValue->featureValueToJson)
     payload->Dict.set("version", JSON.Encode.string(value->unavailableFeatureVersion))
   | None => ()
   }

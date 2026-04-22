@@ -1,1 +1,1 @@
-let value: unknown => unknown
+let value: Surrealdb_JsValue.t => JSON.t

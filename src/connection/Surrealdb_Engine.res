@@ -3,8 +3,6 @@
 // factories so low-level transport surfaces are available to the rewrite.
 type t
 
-external toUnknown: t => unknown = "%identity"
-
 @send external close: t => promise<unit> = "close"
 @send external ready: t => unit = "ready"
 @get external featuresSet: t => Set.t<Surrealdb_Feature.t> = "features"

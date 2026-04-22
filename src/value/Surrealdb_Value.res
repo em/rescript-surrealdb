@@ -13,6 +13,7 @@ type rec t =
   | Int(int)
   | Float(float)
   | String(string)
+  | Unsupported(unsupported)
   | FileRef(Surrealdb_FileRef.t)
   | Future(Surrealdb_Future.t)
   | Decimal(Surrealdb_Decimal.t)
@@ -27,11 +28,16 @@ type rec t =
   | Geometry(Surrealdb_Geometry.t)
   | Array(array<t>)
   | Object(dict<t>)
+and unsupported =
+  | BigIntValue(BigInt.t)
+  | FunctionValue
+  | SymbolValue
 external asNullable: unknown => Nullable.t<unknown> = "%identity"
 external asString: unknown => string = "%identity"
 external asBool: unknown => bool = "%identity"
 external asFloat: unknown => float = "%identity"
 external asInt: unknown => int = "%identity"
+external asBigInt: unknown => BigInt.t = "%identity"
 external asArray: unknown => array<unknown> = "%identity"
 external asDict: unknown => dict<unknown> = "%identity"
 
@@ -95,7 +101,7 @@ let rec fromUnknown: unknown => t = raw =>
     | #boolean => Bool(asBool(raw))
     | #number =>
       let n = asFloat(raw)
-      if Math.floor(n) == n && n > -2147483648.0 && n < 2147483648.0 {
+      if Math.floor(n) == n && n >= -2147483648.0 && n <= 2147483647.0 {
         Int(asInt(raw))
       } else {
         Float(n)
@@ -112,7 +118,9 @@ let rec fromUnknown: unknown => t = raw =>
         ->Array.forEach(((key, value)) => result->Dict.set(key, fromUnknown(value)))
         Object(result)
       }
-    | #bigint | #function | #symbol => None
+    | #bigint => Unsupported(BigIntValue(asBigInt(raw)))
+    | #function => Unsupported(FunctionValue)
+    | #symbol => Unsupported(SymbolValue)
     }
   }
 
@@ -124,6 +132,9 @@ let rec toText = (value: t): string =>
   | Int(n) => Int.toString(n)
   | Float(n) => Float.toString(n)
   | String(s) => s
+  | Unsupported(BigIntValue(value)) => `${value->BigInt.toString}n`
+  | Unsupported(FunctionValue) => "<unsupported:function>"
+  | Unsupported(SymbolValue) => "<unsupported:symbol>"
   | FileRef(fileRef) => Surrealdb_FileRef.toString(fileRef)
   | Future(future) => Surrealdb_Future.toString(future)
   | Decimal(d) => Surrealdb_Decimal.toString(d)
@@ -151,6 +162,17 @@ let rec toJSON = (value: t): JSON.t =>
   | Int(n) => JSON.Encode.int(n)
   | Float(n) => JSON.Encode.float(n)
   | String(s) => JSON.Encode.string(s)
+  | Unsupported(BigIntValue(bigInt)) =>
+    JSON.Encode.object(
+      Dict.fromArray([
+        ("unsupported", JSON.Encode.string("bigint")),
+        ("value", JSON.Encode.string(bigInt->BigInt.toString)),
+      ]),
+    )
+  | Unsupported(FunctionValue) =>
+    JSON.Encode.object(Dict.fromArray([("unsupported", JSON.Encode.string("function"))]))
+  | Unsupported(SymbolValue) =>
+    JSON.Encode.object(Dict.fromArray([("unsupported", JSON.Encode.string("symbol"))]))
   | FileRef(fileRef) => JSON.Encode.string(Surrealdb_FileRef.toString(fileRef))
   | Future(future) => JSON.Encode.string(Surrealdb_Future.toString(future))
   | Decimal(d) => JSON.Encode.string(Surrealdb_Decimal.toString(d))

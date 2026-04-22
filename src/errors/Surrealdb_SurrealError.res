@@ -4,6 +4,9 @@
 // client-side SDK failures.
 type t
 type ctor
+type cause =
+  | Error(t)
+  | ForeignPayload(Surrealdb_ErrorPayload.t)
 
 @module("surrealdb") external ctor: ctor = "SurrealError"
 external unsafeFromUnknown: unknown => t = "%identity"
@@ -16,18 +19,24 @@ external unsafeFromUnknown: unknown => t = "%identity"
 let stack = error =>
   error->stackRaw->Nullable.toOption
 
-let cause = error =>
-  error->causeRaw->Nullable.toOption
-
 let isInstance = value =>
   JsTypeReflection.instanceOfClass(~instance=value, ~class_=ctor)
 
-let fromUnknown = value =>
+let rec fromUnknown = value =>
   if isInstance(value) {
     Some(unsafeFromUnknown(value))
   } else {
     None
   }
+
+and classifyCause = rawCause =>
+  switch fromUnknown(rawCause) {
+  | Some(causeError) => Error(causeError)
+  | None => ForeignPayload(rawCause->Surrealdb_ErrorPayload.fromUnknown)
+  }
+
+let cause = error =>
+  error->causeRaw->Nullable.toOption->Option.map(classifyCause)
 
 let rec toJsonObject = error => {
   let payload = Dict.make()
@@ -38,13 +47,8 @@ let rec toJsonObject = error => {
   | None => ()
   }
   switch error->cause {
-  | Some(rawCause) =>
-    let causeJson =
-      switch fromUnknown(rawCause) {
-      | Some(causeError) => causeError->toJsonObject->JSON.Encode.object
-      | None => rawCause->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON
-      }
-    payload->Dict.set("cause", causeJson)
+  | Some(Error(causeError)) => payload->Dict.set("cause", causeError->toJsonObject->JSON.Encode.object)
+  | Some(ForeignPayload(causePayload)) => payload->Dict.set("cause", causePayload->Surrealdb_ErrorPayload.toJSON)
   | None => ()
   }
   payload

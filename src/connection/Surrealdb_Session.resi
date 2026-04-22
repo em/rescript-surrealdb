@@ -3,13 +3,12 @@ type signinAuth
 type recordAccessAuth
 type namespaceDatabase
 
-let subscribe: (t, string, array<unknown> => unit) => unit => unit
+let subscribe: (t, string, array<Surrealdb_Value.t> => unit) => unit => unit
 let ofRaw: (t, Surrealdb_Uuid.t) => t
 let asQueryable: t => Surrealdb_Queryable.t
 let namespaceRaw: t => Nullable.t<string>
 let databaseRaw: t => Nullable.t<string>
 let accessTokenRaw: t => Nullable.t<string>
-let parameters: t => dict<unknown>
 let sessionRaw: t => Nullable.t<Surrealdb_Uuid.t>
 let isValid: t => bool
 let fork: t => promise<t>
@@ -67,6 +66,7 @@ let databaseValueRaw: namespaceDatabase => Nullable.t<string>
 let namespace: t => option<string>
 let database: t => option<string>
 let accessToken: t => option<string>
+let parameters: t => dict<Surrealdb_Value.t>
 let sessionId: t => option<Surrealdb_Uuid.t>
 let namespaceValue: namespaceDatabase => option<string>
 let databaseValue: namespaceDatabase => option<string>

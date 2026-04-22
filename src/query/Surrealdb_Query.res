@@ -1,9 +1,9 @@
 // src/bindings/Surrealdb_Query.res — SurrealDB Query binding.
 // Concern: bind the Query class from the surrealdb SDK and centralize the
-// BoundQuery-backed statement helpers used across the app and CLI.
+// BoundQuery-backed statement builders used across the package surface.
 // Source: node_modules/surrealdb/dist/surrealdb.d.ts — SurrealQueryable.query()
 // accepts raw SurrealQL or BoundQuery and returns Query with collect().
-type result = array<unknown>
+type result = array<Surrealdb_Value.t>
 
 type t<'value>
 
@@ -21,10 +21,10 @@ external boundOn: (Surrealdb_Queryable.t, Surrealdb_BoundQuery.t) => t<result> =
 @send external json: t<'value> => t<'value> = "json"
 
 @send
-external collect: t<result> => promise<result> = "collect"
+external collectRaw: t<result> => promise<array<unknown>> = "collect"
 
 @send @variadic
-external collectIndexes: (t<result>, array<int>) => promise<result> = "collect"
+external collectIndexesRaw: (t<result>, array<int>) => promise<array<unknown>> = "collect"
 
 @send
 external responses: t<result> => promise<array<Surrealdb_QueryResponse.t>> = "responses"
@@ -36,10 +36,24 @@ external responsesIndexes: (
 ) => promise<array<Surrealdb_QueryResponse.t>> = "responses"
 
 @send
-external stream: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> = "stream"
+external streamRaw: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> = "stream"
 
 @send
 external thenResolve: (t<'value>, @uncurry ('value => 'value)) => promise<'value> = "then"
+
+external asQueryFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t> = "%identity"
+
+let classifyResults = values =>
+  values->Array.map(Surrealdb_Value.fromUnknown)
+
+let collect = query =>
+  query->collectRaw->Promise.thenResolve(classifyResults)
+
+let collectIndexes = (query, indexes) =>
+  query->collectIndexesRaw(indexes)->Promise.thenResolve(classifyResults)
+
+let stream = query =>
+  query->streamRaw->asQueryFrameStream
 
 let textOn = (queryable, sql, ~bindings=?, ()) =>
   switch bindings {
@@ -75,7 +89,7 @@ let streamBound = (db, query) =>
   streamBoundOn(db->Surrealdb_Surreal.asQueryable, query)
 
 let resolve = promise =>
-  promise->thenResolve(value => value)
+  promise->collect
 
 let statement = (query, bindings) => Surrealdb_BoundQuery.fromQuery(query, bindings)
 

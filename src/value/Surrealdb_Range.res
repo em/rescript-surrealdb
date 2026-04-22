@@ -9,6 +9,7 @@ type ctor
 @module("surrealdb") @new external makeRaw: (option<unknown>, option<unknown>) => t = "Range"
 @module("surrealdb") external ctor: ctor = "Range"
 external unsafeFromUnknown: unknown => t = "%identity"
+external boundToUnknown: Surrealdb_RangeBound.t => unknown = "%identity"
 
 @get external beginRaw: t => option<unknown> = "begin"
 @get external endRaw: t => option<unknown> = "end"
@@ -18,8 +19,8 @@ external unsafeFromUnknown: unknown => t = "%identity"
 
 let make = (~begin=?, ~end=?, ()) =>
   makeRaw(
-    begin->Option.map(Surrealdb_RangeBound.toUnknown),
-    end->Option.map(Surrealdb_RangeBound.toUnknown),
+    begin->Option.map(boundToUnknown),
+    end->Option.map(boundToUnknown),
   )
 
 let begin = value =>

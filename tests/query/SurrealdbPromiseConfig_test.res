@@ -1,14 +1,12 @@
 open TestRuntime
 
-external stringToUnknown: string => unknown = "%identity"
-
 describe("SurrealDB promise configurators", () => {
   let db = Surrealdb_Surreal.make()
   let queryable = db->Surrealdb_Surreal.asQueryable
   let version = Surrealdb_DateTime.fromString("2026-04-20T00:00:00.000Z")
   let timeout = Surrealdb_Duration.fromString("5s")
 
-  test("create, delete, insert, and select compile the configured SDK clauses through the shared queryable helpers", () => {
+  test("create, delete, insert, and select compile the configured SDK clauses through the shared queryable path", () => {
     let createQuery = queryable
     ->Surrealdb_Create.recordOn("widgets", "alpha")
     ->Surrealdb_Create.content(Dict.fromArray([("name", Surrealdb_JsValue.string("Alpha"))]))
@@ -36,7 +34,7 @@ describe("SurrealDB promise configurators", () => {
 
     let selectQuery = queryable
     ->Surrealdb_Select.tableOn("widgets")
-    ->Surrealdb_Select.where(Surrealdb_Expr.eq("name", stringToUnknown("Alpha")))
+    ->Surrealdb_Select.where(Surrealdb_Expr.eq("name", Surrealdb_JsValue.string("Alpha")))
     ->Surrealdb_Select.timeout(timeout)
     ->Surrealdb_Select.version(version)
     ->Surrealdb_Select.compile
@@ -64,7 +62,7 @@ describe("SurrealDB promise configurators", () => {
     ))
   })
 
-  test("update, upsert, and relate compile the configured SDK clauses through the shared queryable helpers", () => {
+  test("update, upsert, and relate compile the configured SDK clauses through the shared queryable path", () => {
     let updateQuery = queryable
     ->Surrealdb_Update.recordOn("widgets", "alpha")
     ->Surrealdb_Update.merge(Dict.fromArray([("count", Surrealdb_JsValue.int(3))]))

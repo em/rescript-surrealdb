@@ -5,10 +5,10 @@
 // and compile() for BoundQuery generation.
 type t<'value>
 
-@send external json: t<'value> => t<unknown> = "json"
+@send external json: t<'value> => t<'value> = "json"
 @send external header: (t<'value>, string, string) => t<'value> = "header"
 @send external query: (t<'value>, string, string) => t<'value> = "query"
-@send external value: t<'value> => t<unknown> = "value"
+@send external value: t<'value> => t<Surrealdb_Value.t> = "value"
 @send external compile: t<'value> => Surrealdb_BoundQuery.t = "compile"
 @send external stream: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<Surrealdb_ApiResponse.t>> = "stream"
 

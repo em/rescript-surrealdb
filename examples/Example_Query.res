@@ -16,5 +16,5 @@ let run = async () => {
   )
   let values = await db->Surrealdb.Query.Query.text("RETURN 1; RETURN 2;", ())->Surrealdb.Query.Query.resolve
   let _ = await db->Surrealdb.Connection.Surreal.close
-  values->Array.map(value => value->Surrealdb.Values.Value.fromUnknown->Surrealdb.Values.Value.toText)
+  values->Array.map(Surrealdb.Values.Value.toText)
 }

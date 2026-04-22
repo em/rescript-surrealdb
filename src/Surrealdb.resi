@@ -7,6 +7,7 @@ module Api: {
 module Connection: {
   module Auth = Surrealdb_Auth
   module DriverContext = Surrealdb_DriverContext
+  module DriverOptions = Surrealdb_DriverOptions
   module Engine = Surrealdb_Engine
   module Feature = Surrealdb_Feature
   module Features = Surrealdb_Features
@@ -24,7 +25,9 @@ module Connection: {
 
 module Errors: {
   module Client = Surrealdb_ClientError
+  module Error = Surrealdb_Error
   module ErrorKind = Surrealdb_ErrorKind
+  module ErrorPayload = Surrealdb_ErrorPayload
   module Server = Surrealdb_ServerError
   module Surreal = Surrealdb_SurrealError
 }
@@ -50,6 +53,7 @@ module Query: {
   module Insert = Surrealdb_Insert
   module Output = Surrealdb_Output
   module Query = Surrealdb_Query
+  module QueryFrame = Surrealdb_QueryFrame
   module QueryResponse = Surrealdb_QueryResponse
   module QueryStats = Surrealdb_QueryStats
   module Relate = Surrealdb_Relate
@@ -70,6 +74,7 @@ module Support: {
 }
 
 module Values: {
+  module BoundValue = Surrealdb_BoundValue
   module CborCodec = Surrealdb_CborCodec
   module DateTime = Surrealdb_DateTime
   module Decimal = Surrealdb_Decimal
