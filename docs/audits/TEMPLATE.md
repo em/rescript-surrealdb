@@ -29,6 +29,16 @@
 - affected files:
 - chosen ReScript shape:
 
+## Modeling-First Inventory
+
+- exact or tighter model considered first:
+- where real polymorphism is preserved:
+- where runtime classes stay opaque:
+- stricter supported subset chosen:
+- unsupported or intentionally omitted upstream cases:
+- irreducibly dynamic leaf, if any:
+- surviving `unknown`, JSON, or `%identity` sites with reasons:
+
 ## Alternatives Considered
 
 ### Alternative 1

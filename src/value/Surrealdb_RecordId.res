@@ -1,18 +1,36 @@
 // src/bindings/Surrealdb_RecordId.res — SurrealDB RecordId value binding.
-// Concern: bind the RecordId class from the surrealdb SDK.
-// Source: surrealdb.d.ts — RecordId<Tb, Id> extends Value. Typed record reference
-// with .table returning Table<Tb> and .id returning the id value. Constructor takes
-// (table: string | Table, id: RecordIdValue) where RecordIdValue = string | number |
-// Uuid | bigint | unknown[] | Record<string, unknown>.
+// Concern: bind the RecordId class without flattening compound ids through JSON.
+// Source: surrealdb.d.ts — RecordId<Tb, Id> extends Value. Constructor takes
+// `RecordIdValue = string | number | Uuid | bigint | unknown[] | Record<string, unknown>`.
+// Boundary: top-level id cases are closed, while compound array/object leaves use
+// a recursive supported subset that preserves nullish values, BigInt, and SDK
+// value classes without widening the whole surface to `unknown`.
+// Why this shape: nested function and symbol leaves are not preserved by a sound
+// public algebraic type here, so `idValue` returns `option<idValue>` and keeps
+// the unsupported remainder explicit.
+// Coverage: tests/value/SurrealdbValueSurface_test.res and
+// tests/query/SurrealdbPublicSurface_test.res exercise compound-id round-trips.
 type t
 type ctor
+type rec component =
+  | Undefined
+  | Null
+  | Bool(bool)
+  | Int(int)
+  | Float(float)
+  | String(string)
+  | BigInt(BigInt.t)
+  | ValueClass(Surrealdb_ValueClass.t)
+  | Array(array<component>)
+  | Object(dict<component>)
+
 type idValue =
   | StringId(string)
   | NumberId(float)
   | UuidId(Surrealdb_Uuid.t)
   | BigIntId(BigInt.t)
-  | ArrayId(array<JSON.t>)
-  | ObjectId(dict<JSON.t>)
+  | ArrayId(array<component>)
+  | ObjectId(dict<component>)
 
 @module("surrealdb") @new external make: (string, string) => t = "RecordId"
 @module("surrealdb") @new external makeFromTable: (Surrealdb_Table.t, string) => t = "RecordId"
@@ -23,19 +41,24 @@ type idValue =
 @module("surrealdb") @new external makeWithRawId: (string, unknown) => t = "RecordId"
 @module("surrealdb") @new external makeFromTableWithRawId: (Surrealdb_Table.t, unknown) => t = "RecordId"
 @module("surrealdb") external ctor: ctor = "RecordId"
-@module("surrealdb") external jsonifyRaw: unknown => unknown = "jsonify"
 external unsafeFromUnknown: unknown => t = "%identity"
+external asNullable: unknown => Nullable.t<unknown> = "%identity"
 external asString: unknown => string = "%identity"
+external asBool: unknown => bool = "%identity"
 external asFloat: unknown => float = "%identity"
+external asInt: unknown => int = "%identity"
 external asBigInt: unknown => BigInt.t = "%identity"
+external rawBoolToUnknown: bool => unknown = "%identity"
 external rawStringToUnknown: string => unknown = "%identity"
 external rawFloatToUnknown: float => unknown = "%identity"
 external rawUuidToUnknown: Surrealdb_Uuid.t => unknown = "%identity"
 external rawBigIntToUnknown: BigInt.t => unknown = "%identity"
-external rawArrayToUnknown: array<JSON.t> => unknown = "%identity"
-external rawDictToUnknown: dict<JSON.t> => unknown = "%identity"
-external asJsonArray: unknown => array<JSON.t> = "%identity"
-external asJsonDict: unknown => dict<JSON.t> = "%identity"
+external rawArrayToUnknown: array<unknown> => unknown = "%identity"
+external rawDictToUnknown: dict<unknown> => unknown = "%identity"
+external asUnknownArray: unknown => array<unknown> = "%identity"
+external asUnknownDict: unknown => dict<unknown> = "%identity"
+external nullableToUnknown: Nullable.t<'a> => unknown = "%identity"
+external rawIntToUnknown: int => unknown = "%identity"
 
 @get external table: t => Surrealdb_Table.t = "table"
 @get external idRaw: t => unknown = "id"
@@ -45,14 +68,35 @@ external asJsonDict: unknown => dict<JSON.t> = "%identity"
 
 let tableName = (rid: t): string => rid->table->Surrealdb_Table.name
 
+let rec rawComponent = value =>
+  switch value {
+  | Undefined => Nullable.undefined->nullableToUnknown
+  | Null => Nullable.null->nullableToUnknown
+  | Bool(raw) => raw->rawBoolToUnknown
+  | Int(raw) => raw->rawIntToUnknown
+  | Float(raw) => raw->rawFloatToUnknown
+  | String(raw) => raw->rawStringToUnknown
+  | BigInt(raw) => raw->rawBigIntToUnknown
+  | ValueClass(raw) => raw->Surrealdb_ValueClass.toUnknown
+  | Array(raw) =>
+    raw->Array.map(rawComponent)->rawArrayToUnknown
+  | Object(raw) =>
+    let result = Dict.make()
+    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->rawComponent))
+    result->rawDictToUnknown
+  }
+
 let rawIdValue = value =>
   switch value {
   | StringId(raw) => raw->rawStringToUnknown
   | NumberId(raw) => raw->rawFloatToUnknown
   | UuidId(raw) => raw->rawUuidToUnknown
   | BigIntId(raw) => raw->rawBigIntToUnknown
-  | ArrayId(raw) => raw->rawArrayToUnknown
-  | ObjectId(raw) => raw->rawDictToUnknown
+  | ArrayId(raw) => raw->Array.map(rawComponent)->rawArrayToUnknown
+  | ObjectId(raw) =>
+    let result = Dict.make()
+    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->rawComponent))
+    result->rawDictToUnknown
   }
 
 let makeWithIdValue = (table, value) =>
@@ -61,22 +105,72 @@ let makeWithIdValue = (table, value) =>
 let makeFromTableWithIdValue = (table, value) =>
   makeFromTableWithRawId(table, value->rawIdValue)
 
+let rec arrayComponentsFromUnknown = values =>
+  values->Array.reduce(Some(([]: array<component>)), (state, raw) =>
+    switch (state, componentFromUnknown(raw)) {
+    | (Some(items), Some(value)) => Some(Array.concat(items, [value]))
+    | _ => None
+    }
+  )
+
+and dictComponentsFromUnknown = values =>
+  values->Dict.toArray->Array.reduce(Some(Dict.make()), (state, (key, raw)) =>
+    switch (state, componentFromUnknown(raw)) {
+    | (Some(items), Some(value)) =>
+      items->Dict.set(key, value)
+      Some(items)
+    | _ => None
+    }
+  )
+
+and componentFromUnknown = raw =>
+  switch Surrealdb_ValueClass.fromUnknown(raw) {
+  | Some(value) => Some(ValueClass(value))
+  | None =>
+    switch typeof(raw) {
+    | #undefined => Some(Undefined)
+    | #string => Some(String(asString(raw)))
+    | #boolean => Some(Bool(asBool(raw)))
+    | #number =>
+      let value = asFloat(raw)
+      if Math.floor(value) == value && value >= -2147483648.0 && value <= 2147483647.0 {
+        Some(Int(asInt(raw)))
+      } else {
+        Some(Float(value))
+      }
+    | #bigint => Some(BigInt(asBigInt(raw)))
+    | #function | #symbol => None
+    | #object =>
+      if Nullable.isNullable(asNullable(raw)) {
+        Some(Null)
+      } else if Array.isArray(raw) {
+        raw->asUnknownArray->arrayComponentsFromUnknown->Option.map(value => Array(value))
+      } else {
+        raw->asUnknownDict->dictComponentsFromUnknown->Option.map(value => Object(value))
+      }
+    }
+  }
+
 let idValue = rid =>
   switch Surrealdb_Uuid.fromUnknown(rid->idRaw) {
-  | Some(value) => UuidId(value)
+  | Some(value) => Some(UuidId(value))
   | None =>
     switch typeof(rid->idRaw) {
-    | #string => StringId(rid->idRaw->asString)
-    | #number => NumberId(rid->idRaw->asFloat)
-    | #bigint => BigIntId(rid->idRaw->asBigInt)
+    | #string => Some(StringId(rid->idRaw->asString))
+    | #number => Some(NumberId(rid->idRaw->asFloat))
+    | #bigint => Some(BigIntId(rid->idRaw->asBigInt))
     | #object =>
-      if Array.isArray(rid->idRaw) {
-        ArrayId(rid->idRaw->jsonifyRaw->asJsonArray)
+      if Nullable.isNullable(asNullable(rid->idRaw)) {
+        None
+      } else if Array.isArray(rid->idRaw) {
+        rid->idRaw->asUnknownArray->arrayComponentsFromUnknown->Option.map(value => ArrayId(value))
       } else {
-        ObjectId(rid->idRaw->jsonifyRaw->asJsonDict)
+        switch Surrealdb_ValueClass.fromUnknown(rid->idRaw) {
+        | Some(_) => None
+        | None => rid->idRaw->asUnknownDict->dictComponentsFromUnknown->Option.map(value => ObjectId(value))
+        }
       }
-    | #undefined | #boolean | #function | #symbol =>
-      throw(Failure(`Unsupported RecordId runtime id: ${rid->toString}`))
+    | #undefined | #boolean | #function | #symbol => None
     }
   }
 

@@ -21,15 +21,17 @@ Run this process for any change that does one or more of these:
 Every non-trivial change must touch the right artifacts.
 
 - `docs/audits/<topic>.md`
-  - decision audit for the specific change
+  - decision audit for the specific change, including a modeling-first inventory of tighter exact types, real polymorphism, split overloads, opaque classes, and other alternatives to `unknown`, JSON, or `%identity`
 - `docs/audits/periodic-<scope>.md`
   - periodic or release audit record
+- `docs/RELEASE_BLOCKERS.md`
+  - active blocker list that outranks breadth work until the listed blockers are closed
 - `docs/SOUNDNESS_MATRIX.md`
   - living map of important soundness boundaries and their tests
 - in-source comments in affected `.res` and `.resi`
   - local rationale at hazardous or non-obvious boundaries
 - `docs/TYPE_FIDELITY.md`
-  - documented expressivity gaps between upstream TypeScript and public ReScript
+  - documented expressivity gaps between upstream TypeScript and public ReScript, including the strict supported subset and any intentionally unsupported upstream cases
 - `docs/TYPE_SOUNDNESS_AUDIT.md`
   - current debt inventory for public `unknown`, `%identity`, `%raw`, and other boundary risks
 - `README.md`
@@ -76,35 +78,56 @@ These roles may be performed by different agents or by the same maintainer in se
 
 Capture URLs, declarations, commands, and runtime probes in the audit report.
 
-### 3. Design The Public Representation
+Before proceeding, read `docs/RELEASE_BLOCKERS.md`.
+
+- if the change touches an open blocker, the work must either close that blocker or deepen the proof around it
+- if the change does not close or advance an open blocker, it does not count as forward progress
+- do not add breadth while blocker work is still open
+
+### 3. Prove The Modeling Ceiling
+
+Before accepting any open or lossy boundary, prove what the strongest honest public model can be.
+
+- identify which upstream type parameters are semantically preserved at runtime and which are only caller convention
+- identify whether a dynamic surface can be split into narrower functions, overloads, or package-owned algebraic data types
+- identify whether opaque classes or branded values can be preserved directly instead of converting to JSON
+- isolate the smallest irreducibly dynamic leaf instead of widening the entire surface
+- if one awkward upstream edge case would force a weaker type across an otherwise well-modeled surface, prefer the stricter supported subset and record the unsupported remainder explicitly
+- record each affected `unknown`, JSON projection, and `%identity` site in the audit, with the stronger alternative that was considered first
+
+### 4. Design The Public Representation
 
 - decide the `.resi` shape before or alongside implementation
 - write down at least two alternatives when the choice is non-obvious
-- explain why rejected alternatives are less truthful, less maintainable, or less sound
+- explain why rejected alternatives are less truthful, less maintainable, less sound, or falsely precise
 
-### 4. Implement
+### 5. Implement
 
 - use normal ReScript interop features first
 - add or update in-source rationale comments where required
 - keep the top-level export map thin
 
-### 5. Capture Evidence
+### 6. Capture Evidence
 
 - run `npm run build`
 - run `npm test` when binding code changed
 - run `npm pack --dry-run` for release-facing work
+- for any change that affects a public boundary or package-authored helper surface, prove the packed or published package through a clean external consumer build
+- the consumer proof must use normal consumer syntax at the public boundary; package-internal `%identity` test helpers do not satisfy this gate by themselves
 - inspect emitted JS for representative tricky externals when claiming low-level or zero-cost interop
 - record exact evidence in the audit report
 
-### 6. Run Adversarial Audit
+### 7. Run Adversarial Audit
 
 The adversarial pass must actively try to disprove the design.
 
 It must ask questions like:
 
+- could this `unknown`, JSON projection, or `%identity` site be replaced by a tighter exact model
 - is this really a closed type
 - is this really polymorphism
 - does the runtime actually preserve the generic parameter
+- did the binding preserve the upstream runtime class or did it flatten it into JSON
 - are null, undefined, and omission separated correctly
 - is the public `*Raw` API actually justified
 - is this `%identity` a proved representational equality
@@ -112,19 +135,23 @@ It must ask questions like:
 - could the API be split into narrower truthful pieces
 - does the current documentation match the actual current public surface
 
-### 7. Fix Or Reject
+### 8. Fix Or Reject
 
 - fix the binding if the adversarial pass finds a problem
 - tighten or document any remaining open boundary
 - reject the change if the surface cannot yet be represented honestly
 
-### 8. Release Gate Review
+### 9. Release Gate Review
 
 Before considering the work complete, verify:
 
+- `docs/RELEASE_BLOCKERS.md` does not still list the affected blocker as open
 - code, docs, and audit artifacts all agree
 - the soundness matrix covers the affected boundary
 - `docs/TYPE_FIDELITY.md` and `docs/TYPE_SOUNDNESS_AUDIT.md` are current
+- every accepted `unknown`, JSON projection, or `%identity` site has a written reason why tighter modeling or real polymorphism was not truthful
+- every unsupported upstream case is named explicitly, together with the stricter supported subset the package chose instead of widening the full surface
+- any affected public boundary or helper surface has a current clean-consumer proof recorded in the audit trail
 - `README.md`, `.changeset/README.md`, `package.json`, and `.github/workflows/release.yml` agree on the release path
 - the repository does not imply local `npm publish` as part of the maintainer workflow
 - release publication is delegated to the repo's GitHub Actions workflow, not a local shell
@@ -152,6 +179,7 @@ Use stable descriptive names. Do not bury audit history in vague filenames.
 A non-trivial binding change is incomplete until:
 
 - the required artifacts exist
+- `docs/RELEASE_BLOCKERS.md` was read and any affected blocker was updated
 - the evidence chain is reproducible
 - the adversarial pass has a written verdict
 - the soundness matrix was updated

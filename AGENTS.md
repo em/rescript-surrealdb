@@ -15,6 +15,7 @@ If TypeScript can express something that ReScript cannot, the correct response i
 Read these local files before changing the binding:
 
 - `README.md`
+- `docs/RELEASE_BLOCKERS.md`
 - `docs/TYPE_FIDELITY.md`
 - `docs/TYPE_SOUNDNESS_AUDIT.md`
 - `docs/process/BINDING_PROOF_PROCESS.md`
@@ -61,6 +62,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Preserve upstream runtime classes as opaque ReScript types.
 - Preserve upstream names, arity, async shape, nullability, and error behavior unless there is a strong, documented reason not to.
 - Prefer smaller honest public APIs over larger unsound ones.
+- Prefer a strict supported subset over wider unsound coverage. If one edge case would force a weaker public type across the whole API, keep the stricter model for the sound subset and document the unsupported remainder.
 - Prefer zero-cost or near-zero-cost interop. New runtime wrappers need proof that they solve a real problem that externals cannot solve.
 - Separate exact SDK bindings from package-authored helpers. Helpers are allowed, but they must be clearly labeled as package-added surface in docs.
 - Do not flatten branded SDK values into JSON or plain records if the runtime value is actually a class instance.
@@ -72,6 +74,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Literal unions, enums, discriminated unions, and nullish values are modeled with current ReScript interop features instead of ad hoc strings and booleans.
 - Open foreign data stays open until the caller classifies it.
 - Compromises are narrow, explicit, and documented in `docs/TYPE_FIDELITY.md`.
+- Unsupported or partially supported upstream cases are recorded explicitly instead of weakening the sound subset to make coverage numbers look better.
 - Public helper APIs do not masquerade as upstream SDK exports.
 
 ## ReScript Representation Rules
@@ -130,12 +133,19 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 
 `docs/TYPE_FIDELITY.md` is mandatory and current. Any gap between upstream expressivity and ReScript expressivity must be recorded there.
 
+Every fidelity gap entry must say:
+
+- what strict supported subset the package chose
+- what upstream cases remain unsupported or intentionally open
+- why modeling those cases more exactly is not currently sound in ReScript
+
 Good compromises:
 
 - expose the narrowest honest boundary
 - keep unsafe recovery internal
 - force caller-side narrowing when runtime information is genuinely dynamic
 - explain why the compromise exists
+- keep the sound subset precise even if that means leaving edge cases unsupported
 
 Bad compromises:
 
@@ -144,6 +154,7 @@ Bad compromises:
 - replacing a structured object with `dict<unknown>`
 - replacing an impossible generic with `'a`
 - replacing a dynamic boundary with a fake precise type
+- widening a mostly-modelable surface because a rare edge case was harder to model soundly
 
 When upstream uses keyed variadic tuples, mapped types, conditional types, runtime-generated members, or meta-class behavior, do one of these:
 
@@ -204,6 +215,7 @@ If you add a new public boundary of this kind, update `docs/TYPE_SOUNDNESS_AUDIT
 
 The detailed process lives in these files:
 
+- `docs/RELEASE_BLOCKERS.md`
 - `docs/process/BINDING_PROOF_PROCESS.md`
 - `docs/process/VERSIONING_CONTRACT.md`
 - `docs/process/SOURCE_COMMENT_CONTRACT.md`
@@ -215,6 +227,8 @@ The detailed process lives in these files:
 - `docs/SOUNDNESS_MATRIX.md`
 
 Follow those files as the concrete workflow and artifact contract.
+
+If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not count as progress. Do not add new public surface, helper breadth, docs polish, or coverage-growth-only tests until the open blockers are closed in code and proved through the required consumer evidence.
 
 The process docs define:
 
@@ -231,6 +245,7 @@ The process docs define:
 
 Do not consider binding work complete until all applicable items below are true:
 
+- `docs/RELEASE_BLOCKERS.md` has no still-open blocker touched by the change.
 - `npm run build` passes.
 - `npm test` passes, unless the user explicitly asked for docs-only work and no binding code changed.
 - Any new or changed public `unknown` is justified in `docs/TYPE_FIDELITY.md` or `docs/TYPE_SOUNDNESS_AUDIT.md`.

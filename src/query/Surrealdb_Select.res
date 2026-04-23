@@ -1,18 +1,22 @@
 // src/bindings/Surrealdb_Select.res — SurrealDB SelectPromise binding.
-// Concern: bind the SelectPromise class from the surrealdb SDK.
-// Source: node_modules/surrealdb/dist/surrealdb.d.ts — SurrealQueryable.select()
-// returns SelectPromise with fields(), value(), start(), limit(), where(),
-// fetch(), json(), and compile() for BoundQuery generation.
+// Concern: bind SelectPromise with explicit classified-value and JSON-result modes.
+// Source: surrealdb.d.ts — SelectPromise<T, I, J> resolves to `MaybeJsonify<T, J>`.
+// Boundary: input binding helpers stay on configuration methods; `resolve` and
+// `stream` expose classified `Surrealdb_Value.t`, while `.json()` moves to
+// explicit JSON-mode results.
+// Why this shape: select execution does not preserve a caller-chosen payload
+// generic, but JSON mode is a real upstream state transition.
+// Coverage: tests/connection/SurrealdbSessionSurface_test.res.
 type t<'value>
 
 @send
-external fromTableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => t<Surrealdb_JsValue.t> = "select"
+external fromTableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => t<Surrealdb_Value.t> = "select"
 
 @send
-external fromRecordIdOn: (Surrealdb_Queryable.t, Surrealdb_RecordId.t) => t<Surrealdb_JsValue.t> = "select"
+external fromRecordIdOn: (Surrealdb_Queryable.t, Surrealdb_RecordId.t) => t<Surrealdb_Value.t> = "select"
 
 @send
-external fromRangeOn: (Surrealdb_Queryable.t, Surrealdb_RecordIdRange.t) => t<Surrealdb_JsValue.t> = "select"
+external fromRangeOn: (Surrealdb_Queryable.t, Surrealdb_RecordIdRange.t) => t<Surrealdb_Value.t> = "select"
 
 let tableOn = (queryable, tableName) => queryable->fromTableOn(Surrealdb_Table.make(tableName))
 let recordOn = (queryable, tableName, recordSlug) =>
@@ -51,16 +55,35 @@ external timeout: (t<'value>, Surrealdb_Duration.t) => t<'value> = "timeout"
 external version: (t<'value>, Surrealdb_DateTime.t) => t<'value> = "version"
 
 @send
-external json: t<'value> => t<'value> = "json"
+external json: t<'value> => t<JSON.t> = "json"
 
 @send
 external compile: t<'value> => Surrealdb_BoundQuery.t = "compile"
 
 @send
-external stream: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<'value>> = "stream"
+external streamRaw: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> = "stream"
 
 @send
-external thenResolve: (t<'value>, @uncurry ('value => 'value)) => promise<'value> = "then"
+external thenRaw: (t<'value>, @uncurry (unknown => unknown)) => promise<unknown> = "then"
+
+external asQueryFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t> = "%identity"
+external asJsonFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = "%identity"
+external jsonFromUnknown: unknown => JSON.t = "%identity"
+
+let stream = promise =>
+  promise->streamRaw->asQueryFrameStream
+
+let streamJson = promise =>
+  promise->streamRaw->asJsonFrameStream
 
 let resolve = promise =>
-  promise->thenResolve(value => value)
+  promise->thenRaw(value => value)->Promise.thenResolve(Surrealdb_Value.fromUnknown)
+
+let resolveJson = promise =>
+  promise->thenRaw(value => value)->Promise.thenResolve(jsonFromUnknown)
+
+let thenResolve = (promise, callback) =>
+  promise->resolve->Promise.thenResolve(callback)
+
+let thenResolveJson = (promise, callback) =>
+  promise->resolveJson->Promise.thenResolve(callback)

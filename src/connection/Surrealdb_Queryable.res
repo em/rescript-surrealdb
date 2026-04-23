@@ -7,7 +7,7 @@
 type t
 
 @send
-external authOn: t => Surrealdb_Auth.t<Surrealdb_JsValue.t> = "auth"
+external authOn: t => Surrealdb_Auth.t<Surrealdb_Value.t> = "auth"
 
 let auth = queryable =>
   queryable->authOn

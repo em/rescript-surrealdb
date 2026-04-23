@@ -9,7 +9,22 @@
 
 ## Surface Review
 
+### Exact Modeling Opportunities
+
+- reviewed:
+- findings:
+
+### Unsupported Upstream Surface
+
+- reviewed:
+- findings:
+
 ### Public `unknown` Boundaries
+
+- reviewed:
+- findings:
+
+### Public JSON Projections
 
 - reviewed:
 - findings:

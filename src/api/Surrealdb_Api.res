@@ -38,19 +38,19 @@ external makeRequest: (
 
 @send external setHeaderRaw: (t, string, Nullable.t<string>) => unit = "header"
 
-@send external invokePath: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "invoke"
-@send external invokeRaw: (t, string, request) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "invoke"
-@send external get_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "get"
-@send external post_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "post"
-@send external postRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "post"
-@send external put_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "put"
-@send external putRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "put"
-@send external deleteNoBody: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "delete"
-@send external deleteRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "delete"
-@send external patch_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "patch"
-@send external patchRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "patch"
-@send external trace_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "trace"
-@send external traceRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiResponse.t> = "trace"
+@send external invokePath: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "invoke"
+@send external invokeRaw: (t, string, request) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "invoke"
+@send external get_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "get"
+@send external post_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "post"
+@send external postRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "post"
+@send external put_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "put"
+@send external putRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "put"
+@send external deleteNoBody: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "delete"
+@send external deleteRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "delete"
+@send external patch_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "patch"
+@send external patchRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "patch"
+@send external trace_: (t, string) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "trace"
+@send external traceRaw: (t, string, Surrealdb_JsValue.t) => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> = "trace"
 
 let fromQueryable = queryable =>
   queryable->onQueryable

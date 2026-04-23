@@ -21,7 +21,7 @@ describe("SurrealDB public surface", () => {
       Surrealdb_Escape.ident("foo-bar"),
       Surrealdb_Escape.int(12),
       Surrealdb_Escape.idPart(Surrealdb_JsValue.string("alpha beta")),
-      Surrealdb_RangeBound.included(intToUnknown(7))->Surrealdb_Escape.rangeBound,
+      Surrealdb_RangeBound.included(Surrealdb_RangeBound.Int(7))->Surrealdb_Escape.rangeBound,
       when_->Surrealdb_JsValue.dateTime->Surrealdb_Surql.toString,
       Surrealdb_Equals.values(
         recordId->Surrealdb_JsValue.recordId,
@@ -307,11 +307,11 @@ describe("SurrealDB public surface", () => {
       Surrealdb_RecordId.makeWithUuidId("widgets", uuid)->Surrealdb_RecordId.toString,
       Surrealdb_RecordId.makeWithIdValue(
         "widgets",
-        Surrealdb_RecordId.ArrayId([JSON.Encode.string("alpha"), JSON.Encode.int(2)]),
+        Surrealdb_RecordId.ArrayId([Surrealdb_RecordId.String("alpha"), Surrealdb_RecordId.Int(2)]),
       )->Surrealdb_RecordId.toString,
       Surrealdb_RecordId.makeFromTableWithIdValue(
         Surrealdb_Table.make("widgets"),
-        Surrealdb_RecordId.ObjectId(Dict.fromArray([("slug", JSON.Encode.string("alpha"))])),
+        Surrealdb_RecordId.ObjectId(Dict.fromArray([("slug", Surrealdb_RecordId.String("alpha"))])),
       )->Surrealdb_RecordId.toString,
       Surrealdb_RecordId.makeWithNumberId("widgets", 2.5)->Surrealdb_RecordId.idValue,
       stringRecordId->Surrealdb_StringRecordId.fromStringRecordId->Surrealdb_StringRecordId.toString,
@@ -322,9 +322,141 @@ describe("SurrealDB public surface", () => {
       "widgets:u\"550e8400-e29b-41d4-a716-446655440000\"",
       "widgets:[ s\"alpha\", 2 ]",
       "widgets:{ \"slug\": s\"alpha\" }",
-      Surrealdb_RecordId.NumberId(2.5),
+      Some(Surrealdb_RecordId.NumberId(2.5)),
       "widgets:alpha",
       "12300",
+    ))
+  })
+
+  test("json-mode builder surfaces keep JSON-specific result types across the public modules", () => {
+    let db = Surrealdb_Surreal.make()
+    let queryable = db->Surrealdb_Surreal.asQueryable
+    let payload = Dict.fromArray([("label", Surrealdb_JsValue.string("alpha"))])->Surrealdb_JsValue.object
+    let edgeTable = Surrealdb_Table.make("rel")
+    let fromRecord = Surrealdb_RecordId.make("widgets", "a")
+    let toRecord = Surrealdb_RecordId.make("widgets", "b")
+    let _queryJsonBuilder: Surrealdb_Query.t<array<JSON.t>> =
+      queryable->Surrealdb_Query.textOn("RETURN 1;", ())->Surrealdb_Query.json
+    let _queryResolveJson: Surrealdb_Query.t<array<JSON.t>> => promise<array<JSON.t>> = Surrealdb_Query.resolveJson
+    let _queryStreamJson: Surrealdb_Query.t<array<JSON.t>> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = Surrealdb_Query.streamJson
+    let _selectJsonBuilder: Surrealdb_Select.t<JSON.t> =
+      queryable->Surrealdb_Select.tableOn("widgets")->Surrealdb_Select.json
+    let _selectResolveJson: Surrealdb_Select.t<JSON.t> => promise<JSON.t> = Surrealdb_Select.resolveJson
+    let _selectStreamJson: Surrealdb_Select.t<JSON.t> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = Surrealdb_Select.streamJson
+    let _createJsonBuilder: Surrealdb_Create.t<JSON.t> =
+      queryable->Surrealdb_Create.tableOn("widgets")->Surrealdb_Create.json
+    let _createResolveJson: Surrealdb_Create.t<JSON.t> => promise<JSON.t> = Surrealdb_Create.resolveJson
+    let _updateJsonBuilder: Surrealdb_Update.t<JSON.t> =
+      queryable->Surrealdb_Update.tableOn("widgets")->Surrealdb_Update.json
+    let _updateResolveJson: Surrealdb_Update.t<JSON.t> => promise<JSON.t> = Surrealdb_Update.resolveJson
+    let _upsertJsonBuilder: Surrealdb_Upsert.t<JSON.t> =
+      queryable->Surrealdb_Upsert.tableOn("widgets")->Surrealdb_Upsert.json
+    let _upsertResolveJson: Surrealdb_Upsert.t<JSON.t> => promise<JSON.t> = Surrealdb_Upsert.resolveJson
+    let _deleteJsonBuilder: Surrealdb_Delete.t<JSON.t> =
+      queryable->Surrealdb_Delete.tableOn("widgets")->Surrealdb_Delete.json
+    let _deleteResolveJson: Surrealdb_Delete.t<JSON.t> => promise<JSON.t> = Surrealdb_Delete.resolveJson
+    let _insertJsonBuilder: Surrealdb_Insert.t<JSON.t> =
+      queryable->Surrealdb_Insert.tableOn("widgets", payload)->Surrealdb_Insert.json
+    let _insertResolveJson: Surrealdb_Insert.t<JSON.t> => promise<JSON.t> = Surrealdb_Insert.resolveJson
+    let _relateJsonBuilder: Surrealdb_Relate.t<JSON.t> =
+      queryable->Surrealdb_Relate.recordsOn(fromRecord, edgeTable, toRecord, ())->Surrealdb_Relate.json
+    let _relateResolveJson: Surrealdb_Relate.t<JSON.t> => promise<JSON.t> = Surrealdb_Relate.resolveJson
+    let _runJsonBuilder: Surrealdb_Run.t<JSON.t> =
+      queryable
+      ->Surrealdb_Run.callOn("string::len", ~args=[Surrealdb_JsValue.string("alpha")], ())
+      ->Surrealdb_Run.json
+    let _runResolveJson: Surrealdb_Run.t<JSON.t> => promise<JSON.t> = Surrealdb_Run.resolveJson
+    let _authJsonBuilder: Surrealdb_Auth.t<JSON.t> =
+      queryable->Surrealdb_Queryable.auth->Surrealdb_Auth.json
+    let _authResolveJson: Surrealdb_Auth.t<JSON.t> => promise<JSON.t> = Surrealdb_Auth.resolveJson
+    let _authStreamJson: Surrealdb_Auth.t<JSON.t> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = Surrealdb_Auth.streamJson
+    let _apiJson:
+      Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.valueFormat> => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.jsonFormat> =
+      Surrealdb_ApiPromise.json
+    let _apiResolveJson:
+      Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.jsonFormat> => promise<Surrealdb_ApiJsonResponse.t> =
+      Surrealdb_ApiPromise.resolveJson
+    let _apiStreamJson:
+      Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.jsonFormat> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<Surrealdb_ApiJsonResponse.t>> =
+      Surrealdb_ApiPromise.streamJson
+    let _apiValue:
+      Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.responseMode, Surrealdb_ApiPromise.jsonFormat> => Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.bodyMode, Surrealdb_ApiPromise.jsonFormat> =
+      Surrealdb_ApiPromise.value
+    let _apiAwaitValueJson:
+      Surrealdb_ApiPromise.t<Surrealdb_ApiPromise.bodyMode, Surrealdb_ApiPromise.jsonFormat> => promise<JSON.t> =
+      Surrealdb_ApiPromise.awaitValueJson
+
+    (
+      queryable->Surrealdb_Query.textOn("RETURN 1;", ())->Surrealdb_Query.json->Surrealdb_Query.inner->Surrealdb_BoundQuery.query,
+      queryable
+      ->Surrealdb_Select.tableOn("widgets")
+      ->Surrealdb_Select.json
+      ->Surrealdb_Select.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("SELECT * FROM $bind__"),
+      queryable
+      ->Surrealdb_Create.tableOn("widgets")
+      ->Surrealdb_Create.json
+      ->Surrealdb_Create.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("CREATE $bind__"),
+      queryable
+      ->Surrealdb_Update.tableOn("widgets")
+      ->Surrealdb_Update.json
+      ->Surrealdb_Update.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("UPDATE $bind__"),
+      queryable
+      ->Surrealdb_Upsert.tableOn("widgets")
+      ->Surrealdb_Upsert.json
+      ->Surrealdb_Upsert.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("UPSERT $bind__"),
+      queryable
+      ->Surrealdb_Delete.tableOn("widgets")
+      ->Surrealdb_Delete.json
+      ->Surrealdb_Delete.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.includes("RETURN BEFORE"),
+      queryable
+      ->Surrealdb_Delete.tableOn("widgets")
+      ->Surrealdb_Delete.json
+      ->Surrealdb_Delete.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("DELETE $bind__"),
+      queryable
+      ->Surrealdb_Insert.tableOn("widgets", payload)
+      ->Surrealdb_Insert.json
+      ->Surrealdb_Insert.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("INSERT INTO $bind__"),
+      queryable
+      ->Surrealdb_Relate.recordsOn(fromRecord, edgeTable, toRecord, ())
+      ->Surrealdb_Relate.json
+      ->Surrealdb_Relate.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("RELATE  ONLY $bind__"),
+      queryable
+      ->Surrealdb_Run.callOn("string::len", ~args=[Surrealdb_JsValue.string("alpha")], ())
+      ->Surrealdb_Run.json
+      ->Surrealdb_Run.compile
+      ->Surrealdb_BoundQuery.query
+      ->String.startsWith("string::len("),
+      queryable->Surrealdb_Queryable.auth->Surrealdb_Auth.json->Surrealdb_Auth.compile->Surrealdb_BoundQuery.query,
+    )
+    ->Expect.expect
+    ->Expect.toEqual((
+      "RETURN 1;",
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      "SELECT * FROM ONLY $auth",
     ))
   })
 
@@ -335,15 +467,15 @@ describe("SurrealDB public surface", () => {
     let polygon = Surrealdb_GeometryPolygon.make(~outerBoundary=line)
     let range =
       Surrealdb_Range.make(
-        ~begin=Surrealdb_RangeBound.included(intToUnknown(1)),
-        ~end=Surrealdb_RangeBound.excluded(intToUnknown(5)),
+        ~begin=Surrealdb_RangeBound.included(Surrealdb_RangeBound.Int(1)),
+        ~end=Surrealdb_RangeBound.excluded(Surrealdb_RangeBound.Int(5)),
         (),
       )
     let recordIdRange =
       Surrealdb_RecordIdRange.make(
         ~table="widgets",
-        ~begin=Surrealdb_RangeBound.included("a"->toUnknown),
-        ~end=Surrealdb_RangeBound.excluded("z"->toUnknown),
+        ~begin=Surrealdb_RangeBound.included(Surrealdb_RangeBound.String("a")),
+        ~end=Surrealdb_RangeBound.excluded(Surrealdb_RangeBound.String("z")),
         (),
       )
 

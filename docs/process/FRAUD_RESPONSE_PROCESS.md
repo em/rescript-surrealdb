@@ -25,6 +25,25 @@ Every time the user reports fraud, misalignment, or a systemic failure pattern.
 
 4. **The change happens before other work continues.**
 
+## Binding Repository Gate
+
+When the fraud report concerns type soundness, fake precision, or public binding shape, the first corrective artifact is a modeling-first audit entry.
+
+That entry must start with:
+
+1. the exact public surfaces under suspicion
+2. the stronger models considered first:
+   - exact records or variants
+   - preserved opaque runtime classes
+   - narrower overload splits
+   - real ML polymorphism where the runtime preserves the parameter
+3. the remaining irreducibly dynamic leaf, if one truly exists
+4. every `unknown`, JSON projection, and `%identity` site that survived that pass, with a reason
+
+Counting boundary debt is insufficient by itself. A fraud audit in a binding repo is incomplete until it proves where exact modeling was possible and where it was not.
+
+If a mostly-modelable surface was widened because of one or two awkward upstream cases, the corrective artifact must name that as a process failure. The correction is to keep the stricter supported subset and document the unsupported remainder, not to keep the widened public type.
+
 ## What Does Not Count
 
 - Verbal acknowledgment

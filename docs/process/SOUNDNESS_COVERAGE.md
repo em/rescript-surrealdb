@@ -20,8 +20,10 @@ Every row must stay connected to:
 
 ## Boundary Classes That Must Be Tracked
 
+- exact-modeling opportunities that were rejected or accepted
 - public `unknown` inputs
 - public `unknown` outputs
+- public JSON projections or package-authored narrowed JSON facades
 - public `*Raw` APIs
 - public `%identity`, `Obj.magic`, and `%raw` boundaries
 - runtime class or instance classification
@@ -38,6 +40,8 @@ Each boundary row in `docs/SOUNDNESS_MATRIX.md` must identify:
 - subsystem
 - boundary
 - risk
+- strongest rejected tighter model
+- unsupported upstream cases, if the chosen model deliberately excludes them
 - source files
 - test files
 - audit file
@@ -50,6 +54,8 @@ Every tracked boundary must have at least one direct test that targets the actua
 
 The test must exercise the public boundary directly and would fail if the binding lied about the contract.
 
+When the public boundary accepts `unknown` or another deliberately open foreign type, at least one proof must also show that a normal external consumer can use the boundary without package-local unsafe casts.
+
 ## Release Rule
 
 `weak` and `missing` rows are release blockers unless the periodic audit explicitly carries them forward with a written reason, owner, and next review trigger.
@@ -59,14 +65,22 @@ The test must exercise the public boundary directly and would fail if the bindin
 These do not count as soundness coverage by themselves:
 
 - high aggregate coverage percentage
+- a low global coverage threshold such as the current Vitest gate
 - compilation
 - a generic integration test that incidentally passes through the boundary
 - a test that never checks the specific failure mode the boundary is guarding against
+- a package-internal test that reaches a public `unknown` boundary only through local `%identity` helpers when no clean external consumer proof exists
+
+Global coverage thresholds are smoke gates only.
+
+They may detect a totally untested package. They do not prove that important public boundaries, typed consumer paths, compile-fail invariants, or release blockers are actually covered.
 
 ## Required Review Questions
 
 When updating the soundness matrix, ask:
 
+- could this boundary be modeled more exactly with a variant, record, opaque class, or narrower polymorphism
+- did the package preserve the strict sound subset, or did it weaken the whole surface for a rare edge case
 - what exact lie would this test catch
 - does the test exercise the public boundary directly
 - if the binding drifted from the upstream `.d.ts`, would this test fail

@@ -1,25 +1,25 @@
-type managed<'value>
+type managed
 type unmanaged
 
-let tableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => managed<Surrealdb_JsValue.t>
+let tableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => managed
 let ofOn: (Surrealdb_Queryable.t, Surrealdb_Uuid.t) => unmanaged
-let diff: managed<'value> => managed<'value>
-let fields: (managed<'value>, array<string>) => managed<'value>
-let value: (managed<'value>, string) => managed<'value>
-let where: (managed<'value>, Surrealdb_Expr.t) => managed<'value>
-let fetch: (managed<'value>, array<string>) => managed<'value>
-let compile: managed<'value> => Surrealdb_BoundQuery.t
+let diff: managed => managed
+let fields: (managed, array<string>) => managed
+let value: (managed, string) => managed
+let where: (managed, Surrealdb_Expr.t) => managed
+let fetch: (managed, array<string>) => managed
+let compile: managed => Surrealdb_BoundQuery.t
 let thenManaged: (
-  managed<'value>,
+  managed,
   (Surrealdb_LiveSubscription.t => Surrealdb_LiveSubscription.t),
 ) => promise<Surrealdb_LiveSubscription.t>
 let thenUnmanaged: (
   unmanaged,
   (Surrealdb_LiveSubscription.t => Surrealdb_LiveSubscription.t),
 ) => promise<Surrealdb_LiveSubscription.t>
-let tableNamedOn: (Surrealdb_Queryable.t, string) => managed<Surrealdb_JsValue.t>
+let tableNamedOn: (Surrealdb_Queryable.t, string) => managed
 let ofIdOn: (Surrealdb_Queryable.t, Surrealdb_Uuid.t) => unmanaged
-let awaitManaged: managed<'value> => promise<Surrealdb_LiveSubscription.t>
+let awaitManaged: managed => promise<Surrealdb_LiveSubscription.t>
 let awaitUnmanaged: unmanaged => promise<Surrealdb_LiveSubscription.t>
-let table: (Surrealdb_Surreal.t, Surrealdb_Table.t) => managed<Surrealdb_JsValue.t>
+let table: (Surrealdb_Surreal.t, Surrealdb_Table.t) => managed
 let of_: (Surrealdb_Surreal.t, Surrealdb_Uuid.t) => unmanaged

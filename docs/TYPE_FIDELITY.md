@@ -4,7 +4,13 @@
 
 This file records the deliberate gaps between upstream SurrealDB TypeScript expressivity and the current public ReScript surface.
 
-The public `.resi` files stay authoritative. This file explains where the binding is intentionally narrower, more open, or package-added.
+The public `.resi` files stay authoritative. This file explains where the binding is intentionally narrower, more open, package-added, or intentionally unsupported because widening the whole surface would damage soundness.
+
+Each entry states:
+
+- the strict supported subset
+- the unsupported or still-open upstream remainder
+- why a wider public ReScript type would lie
 
 ## Fidelity Gaps
 
@@ -18,57 +24,133 @@ The public `.resi` files stay authoritative. This file explains where the bindin
   - `Surrealdb_Publisher.subscribe: (t, string, array<Surrealdb_Value.t> => unit) => unit => unit`
   - `Surrealdb_Session.subscribe: (t, string, array<Surrealdb_Value.t> => unit) => unit => unit`
   - `Surrealdb_Surreal.subscribe: (t, string, array<Surrealdb_Value.t> => unit) => unit => unit`
-- Why: the callback tuple type depends on the runtime event key. ReScript cannot express one public function whose callback payload changes with the event string. The binding keeps the event name open and classifies each payload element through `Surrealdb_Value.fromUnknown`.
+- Strict supported subset:
+  - runtime event name plus classified payload elements
+- Unsupported remainder:
+  - a single public callback type whose payload tuple changes with the runtime event string
+- Why: the callback tuple type depends on the runtime event key. ReScript cannot express that value-dependent public function shape honestly.
 
 ### Query result surface
 
 - TS source: `node_modules/surrealdb/dist/surrealdb.d.ts`
-  - `query<R extends unknown[] = unknown[]>(query: string, bindings?: Record<string, unknown>): Query<R>`
-  - `query<R extends unknown[] = unknown[]>(query: BoundQuery<R>): Query<R>`
+  - `query<R extends unknown[] = unknown[]>(...) => Query<R>`
 - ReScript representation:
   - `type result = array<Surrealdb_Value.t>`
-  - text and bound query helpers in `Surrealdb_Query` resolve to `t<result>`, `promise<result>`, or `Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t>`
-- Why: the result shape depends on query text and caller intent. Exporting a free `'a` here would claim precision the runtime does not prove. The current surface keeps results as classified Surreal values until the caller narrows them further.
+  - `type jsonResult = array<JSON.t>`
+  - `Surrealdb_Query` resolves or streams those classified arrays
+- Strict supported subset:
+  - classified Surreal values on the ordinary path
+  - explicit JSON values after `.json()`
+- Unsupported remainder:
+  - exact static tuple typing derived from query text or caller convention
+- Why: the result shape depends on query text and caller intent. Exporting a free `'a` here would claim precision the runtime does not prove.
 
-### `Surrealdb_Query.thenResolve`
+### CRUD, auth, live, and API resolved output typing
 
-- TS source: Promise-like `then(...)` overloads on the SDK `Query` class
-- ReScript representation: `let thenResolve: (t<'value>, ('value => 'value)) => promise<'value>`
-- Why: the current public binding exposes the common fulfillment path without attempting to compress the full Promise-like overload set into one broader public signature.
+- TS source:
+  - `auth<T>(): AuthPromise<RecordResult<T> | undefined>`
+  - `select<T>(...): SelectPromise<RecordResult<T> | undefined | RecordResult<T>[], T>`
+  - `create<T>(...): CreatePromise<RecordResult<T> | RecordResult<T>[], T>`
+  - `update<T>(...): UpdatePromise<RecordResult<T> | RecordResult<T>[], T>`
+  - `upsert<T>(...): UpsertPromise<RecordResult<T> | RecordResult<T>[], T>`
+  - `delete<T>(...): DeletePromise<RecordResult<T> | RecordResult<T>[]>`
+  - `insert<T>(...): InsertPromise<RecordResult<T>[]>`
+  - `relate<T>(...): RelatePromise<T | T[]>`
+  - `run<T>(...): RunPromise<T>`
+  - `class ApiPromise<Req, Res, V extends boolean = false, J extends boolean = false>`
+- ReScript representation:
+  - CRUD builders and `Auth` resolve to `Surrealdb_Value.t` on the ordinary path and `JSON.t` after `.json()`
+  - `Query` resolves to `array<Surrealdb_Value.t>` or `array<JSON.t>`
+  - `Live` resolves to `Surrealdb_LiveSubscription.t`
+  - `ApiPromise` resolves to `Surrealdb_ApiResponse.t`, `Surrealdb_ApiJsonResponse.t`, `Surrealdb_Value.t`, or `JSON.t` depending on explicit mode
+- Strict supported subset:
+  - builder configuration
+  - compile
+  - execution on classified outputs
+  - explicit response/body and value/JSON mode transitions
+- Unsupported remainder:
+  - exact static modeling of caller-supplied schema types or query-text-derived record shapes as ordinary ML polymorphism
+- Why: the upstream generic `T` is intent- or schema-driven rather than runtime-preserved ML polymorphism. The strongest honest public shape is classified output plus explicit mode state.
 
-### `Surrealdb_ApiPromise.then_`
+### Promise `.json()` state on query/auth/CRUD/API builders
 
-- TS source: `DispatchedPromise.then<TResult1 = T, TResult2 = never>(...)`
-- ReScript representation: `let then_: (t<'value>, ('value => 'value)) => promise<'value>`
-- Why: the public binding keeps the fulfillment-preserving path that the package uses directly and does not attempt to model the full Promise overload set as a bespoke public abstraction.
+- TS source:
+  - `json(): Query<R, true>`
+  - `json(): SelectPromise<T, I, true>`
+  - `json(): CreatePromise<T, I, true>`
+  - `json(): UpdatePromise<T, I, true>`
+  - `json(): UpsertPromise<T, I, true>`
+  - `json(): DeletePromise<T, true>`
+  - `json(): InsertPromise<T, true>`
+  - `json(): RelatePromise<T, true>`
+  - `json(): RunPromise<T, true>`
+  - `json(): AuthPromise<T, true>`
+  - `json(): ApiPromise<Req, Res, V, true>`
+- ReScript representation:
+  - `Query.json: t<'value> => t<jsonResult>`
+  - CRUD and `Auth`: `json: t<'value> => t<JSON.t>`
+  - `ApiPromise.json: t<'mode, valueFormat> => t<'mode, jsonFormat>`
+- Strict supported subset:
+  - explicit format-state transition at the public type level
+  - direct typed access to JSONified results and frames where the runtime exposes them
+- Unsupported remainder:
+  - exact `MaybeJsonify<T, J>` propagation for caller-defined `T`
+- Why: upstream tracks a real JSON-mode state. The binding models that state explicitly, but it does not pretend it can preserve arbitrary caller-defined schema types through that transition.
+
+### `ApiPromise.stream()` and `value()`
+
+- Upstream runtime:
+  - `value()` changes fulfillment mode
+  - `stream()` still yields response envelopes on the installed SDK
+- ReScript representation:
+  - `stream: t<'mode, valueFormat> => AsyncIterable.t<Frame.t<ApiResponse.t>>`
+  - `streamJson: t<'mode, jsonFormat> => AsyncIterable.t<Frame.t<ApiJsonResponse.t>>`
+  - there is no body-mode stream API
+- Why: the installed runtime does not expose a distinct body-mode stream surface. Exporting one would lie.
+
+### `Surrealdb_Query.thenResolve` and `Surrealdb_ApiPromise.then_`
+
+- TS source: Promise-like `then(...)` overloads on SDK builder classes
+- ReScript representation:
+  - fulfillment-preserving helpers only
+- Strict supported subset:
+  - the ordinary fulfillment path used by the package surface
+- Unsupported remainder:
+  - the full upstream Promise overload family as a bespoke public abstraction
+- Why: the binding keeps the common sound fulfillment path and documents the rest as a fidelity gap instead of inventing a misleading Promise façade.
 
 ### `Surrealdb_RangeBound.included` / `excluded`
 
-- TS source: `BoundIncluded<T>` and `BoundExcluded<T>`
+- TS source:
+  - `class BoundIncluded<T> { readonly value: T }`
+  - `class BoundExcluded<T> { readonly value: T }`
 - ReScript representation:
-  - `let included: unknown => t`
-  - `let excluded: unknown => t`
-- Why: the upstream constructor accepts any runtime value, but ReScript cannot honestly preserve that value parameter as a public free type variable. The binding keeps the input open as `unknown` instead of exporting fake precision.
+  - constructor input:
+    - `Undefined | Null | Bool | Int | Float | String | BigInt | ValueClass | Array | Object`
+  - readback:
+    - `value: t => Surrealdb_BoundValue.t`
+- Strict supported subset:
+  - recursive constructor inputs that the package can re-emit exactly
+- Unsupported remainder:
+  - constructor input through arbitrary foreign `unknown`
+  - function and symbol leaves on the typed constructor path
+- Why: the package can model the supported recursive subset directly. Reopening the constructor to `unknown` would reintroduce consumer friction, and pretending every `BoundValue.t` is constructible would over-claim.
 
 ### Engine factory invocation
 
-- TS source: `node_modules/surrealdb/dist/surrealdb.d.ts`
-  - `type EngineFactory = (context: DriverContext) => SurrealEngine`
-  - `type Engines = Record<string, EngineFactory>`
-  - `createRemoteEngines(): Engines`
+- TS source: `EngineFactory = (context: DriverContext) => SurrealEngine`
 - ReScript representation:
   - `Surrealdb_RemoteEngines.factory` stays opaque
-  - `Surrealdb_DriverContext.instantiate: (t, Surrealdb_RemoteEngines.factory) => Surrealdb_Engine.t`
-- Why: the SDK returns a plain JS record of callable engine factories. The binding keeps those function values opaque and invokes them through a package helper so `DriverOptions`, `RemoteEngines`, and `DriverContext` do not create a public module cycle.
+  - `Surrealdb_DriverContext.instantiate` invokes one opaque factory with a typed context
+- Why: the SDK returns a plain JS record of function values. The helper keeps the public graph acyclic without pretending the SDK exports a named `instantiate` method.
 
 ### Environment default WebSocket
 
 - Upstream reality:
   - WebSocket availability is environment-dependent
-  - the SDK can run in environments where the global `WebSocket` binding is absent or not the active transport path
 - ReScript representation:
   - `Surrealdb_Surreal.defaultWebSocketImpl: option<Surrealdb_DriverOptions.websocketImpl>`
-- Why: exporting a non-optional default value lies about environments such as Node 20 where no global `WebSocket` exists. The binding now keeps that boundary honest and leaves absence explicit.
+- Why: exporting a non-optional default value would lie about environments such as Node 20 where no global `WebSocket` exists.
 
 ### Codec decode boundary
 
@@ -77,7 +159,11 @@ The public `.resi` files stay authoritative. This file explains where the bindin
   - `Surrealdb_CborCodec.decodeUnknown: (t, Uint8Array.t) => unknown`
   - `Surrealdb_CborCodec.decodeWith: (t, Uint8Array.t, unknown => option<'value>) => result<'value, decodeError>`
   - same shape in `Surrealdb_ValueCodec`
-- Why: a codec can return foreign runtime data, but it cannot prove the final ReScript type by itself. The binding leaves the raw decode boundary open and requires a caller-supplied classifier for typed recovery.
+- Strict supported subset:
+  - explicit caller-supplied classification at the decode seam
+- Unsupported remainder:
+  - package-chosen final `'value` without caller evidence
+- Why: the codec can return foreign runtime data, but it cannot prove the final ReScript type by itself.
 
 ### Raw RPC error builders
 
@@ -89,18 +175,27 @@ The public `.resi` files stay authoritative. This file explains where the bindin
 
 ### `Surrealdb_RecordId.idValue`
 
-- Upstream runtime: `RecordId` stores several possible identifier shapes.
+- Upstream runtime:
+  - `RecordId` stores `string | number | Uuid | bigint | unknown[] | Record<string, unknown>`
 - ReScript representation:
-  - `type idValue = StringId(string) | NumberId(float) | UuidId(Surrealdb_Uuid.t) | BigIntId(BigInt.t) | ArrayId(array<JSON.t>) | ObjectId(dict<JSON.t>)`
-- Why: the binding exposes the current supported runtime identifier shapes as a package-owned union instead of returning raw `unknown`.
+  - `type rec component = Undefined | Null | Bool | Int | Float | String | BigInt | ValueClass | Array | Object`
+  - `type idValue = StringId | NumberId | UuidId | BigIntId | ArrayId | ObjectId`
+  - `idValue: t => option<idValue>`
+- Strict supported subset:
+  - scalar ids
+  - compound ids whose nested leaves fit the recursive `component` subset
+  - nested value-class leaves such as `DateTime`, `Duration`, `Decimal`, `Uuid`, `Table`, `Range`, `Geometry`, and `RecordId`
+- Unsupported remainder:
+  - nested leaves that cannot be reclassified into `component`, including nested function and symbol cases
+- Why: the package now models the supported recursive subset directly. Returning `None` for the unsupported remainder is narrower and more honest than flattening the whole boundary to JSON or `unknown`.
 
 ## Package-Added Surfaces
 
 ### `Surrealdb_Value.t`
 
-- Upstream runtime: the SDK exports runtime classes such as `RecordId`, `DateTime`, `Duration`, `Decimal`, `Uuid`, `Table`, `Geometry`, `Range`, and plain JS primitives and containers.
-- ReScript representation: `Surrealdb_Value.t` is a package classifier layered over those runtime values.
-- Why: this package-added surface supports exhaustive matching across mixed runtime payloads. It is not a direct upstream SDK export and must stay documented as package-owned API.
+- Upstream runtime: the SDK exports runtime classes such as `RecordId`, `DateTime`, `Duration`, `Decimal`, `Uuid`, `Table`, `Geometry`, `Range`, and plain JS primitives and containers
+- ReScript representation: `Surrealdb_Value.t` is a package classifier layered over those runtime values
+- Why: this package-added surface supports exhaustive matching across mixed runtime payloads. It is not a direct upstream SDK export and stays documented as package-owned API.
 
 ### `Surrealdb_Query` helper constructors
 
@@ -115,11 +210,11 @@ The public `.resi` files stay authoritative. This file explains where the bindin
   - `countAllStatement`
   - `tableStructureStatement`
   - `dbStructureStatement`
-- Why: these helpers are convenience layers around `query()` and `BoundQuery`. They remain public, but they must never be documented as if upstream `surrealdb` exports them directly.
+- Why: these helpers are convenience layers around `query()` and `BoundQuery`. They remain public, but they are not documented as upstream SDK exports.
 
 ### Engine factory helpers
 
 - Package-added helpers:
   - `Surrealdb_DriverContext.instantiate`
   - `Surrealdb_RemoteEngines.keys`
-- Why: the SDK exposes engines as a string-keyed record of function values. These helpers make that record usable from ReScript without claiming that the SDK exports named `instantiate` or `keys` methods.
+- Why: the SDK exposes engines as a string-keyed record of function values. These helpers make that record usable from ReScript without claiming the SDK exports named `instantiate` or `keys` methods.

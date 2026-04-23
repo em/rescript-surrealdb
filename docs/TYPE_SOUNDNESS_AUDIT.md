@@ -2,86 +2,62 @@
 
 ## Build Status
 
-**BUILD PASSING.** `npm run build`, targeted `vitest` for value/query/session boundaries, `npm test`, and `npm pack --dry-run` all passed on 2026-04-22 after the public-boundary tightening pass.
+**BUILD PASSING.**
+
+Verification run on 2026-04-23:
+
+- `npm run build`
+- `npm test`
+- `npm pack --dry-run`
+
+Build health is necessary and insufficient. The current soundness verdict also depends on direct boundary tests and the packed-artifact clean-consumer proof in `scripts/packedConsumerProof.mjs`.
 
 ## Inventory
 
 | Metric | Count |
 |--------|-------|
-| Public `unknown` lines in `.resi` files | 122 |
-| `%identity` in `.res` files | 163 |
+| Public `unknown` lines in `.resi` files | 121 |
+| `%identity` in `.res` files | 208 |
 | `Obj.magic` | 0 |
 | `%raw` | 0 |
-| Public `*Raw` APIs | 66 |
+| Public `*Raw` APIs | 68 |
 
-## `%identity` Breakdown
+## `%identity` Summary
 
-163 total. Categorized:
+The remaining `%identity` sites fall into four accepted classes:
 
-### Checked runtime casts (safe -- guarded by `instanceof` or `typeof`)
+- checked runtime casts after `instanceof`, `typeof`, or nullable checks
+- honest subtype upcasts for real SDK inheritance
+- explicit widening into `unknown` at foreign boundaries
+- internal boundary sealing for opaque wrappers and union simulation
 
-- `Surrealdb_Value.res`: 8 casts in `fromUnknown`
-- `Surrealdb_BoundValue.res`: 8 casts
-- `Surrealdb_ErrorPayload.res`: 6 casts
-- `Surrealdb_ClientError.res`: 24 casts
-- `Surrealdb_ServerError.res`: 12 casts
-- `Surrealdb_SurrealError.res`: 1 cast
-- `Surrealdb_Feature.res`: 1 cast
-- `Surrealdb_Frame.res`: 5 casts
-- `Surrealdb_ManagedLiveSubscription.res`: 1 cast
-- `Surrealdb_UnmanagedLiveSubscription.res`: 1 cast
-- `Surrealdb_HttpEngine.res`: 1 cast
-- `Surrealdb_WebSocketEngine.res`: 1 cast
-- `Surrealdb_RpcEngine.res`: 1 cast
-- `Surrealdb_RecordId.res`: 6 casts for `idValue`
-- Value type classifiers (DateTime, Uuid, Decimal, Duration, Table, FileRef, Future, 7 geometry types, StringRecordId): 16 casts
+No current public `%identity` site manufactures a more precise public type than the runtime proved.
 
-### Honest subtype upcasts (safe -- runtime IS-A relationships)
+## Corrected on 2026-04-23
 
-- `Surrealdb_Surreal.res`: `asQueryable`, `asSession`
-- `Surrealdb_Session.res`: `asQueryable`
-- `Surrealdb_Transaction.res`: `asQueryable`
-- `Surrealdb_HttpEngine.res`: `asEngine`
-- `Surrealdb_WebSocketEngine.res`: `asEngine`
-- `Surrealdb_RpcEngine.res`: `asEngine`
-- `Surrealdb_ManagedLiveSubscription.res`: `asLiveSubscription`
-- `Surrealdb_UnmanagedLiveSubscription.res`: `asLiveSubscription`
-- `Surrealdb_ChannelIterator.res`: `asAsyncIterable`
-- `Surrealdb_ValueCodec.res`: `fromCborCodec`
-- 7 geometry types: `asGeometry`
+1. Promise builders no longer leak input-side `Surrealdb_JsValue.t` into resolved output positions.
+   - CRUD builders and `Auth` now resolve to `Surrealdb_Value.t` on the ordinary path and `JSON.t` after `.json()`.
+   - `Query` now resolves to `array<Surrealdb_Value.t>` or `array<JSON.t>`.
+   - `Live` no longer exports a fake payload generic.
 
-### Explicit boundary conversions into `unknown` (safe -- widening)
+2. `.json()` mode is now explicit in the public type system.
+   - `Query`, CRUD builders, `Auth`, and `ApiPromise` all change public format state at the type level.
 
-- `toUnknown` in `Surrealdb_Error.res`, `Surrealdb_Frame.res`, `Surrealdb_RangeBound.res`
-- `Surrealdb_Escape.res`: `boundToUnknown`
-- `Surrealdb_Export.res`: `unsafeBoolToUnknown`, `unsafeArrayToUnknown`
-- `Surrealdb_JsValue.res`: internal `unsafeFrom`
+3. `ApiPromise` now models the real upstream state machine more honestly.
+   - response-envelope/body mode is separate from value/JSON mode
+   - `stream()` remains envelope-only because the installed runtime does not expose a body-mode stream
 
-### Union simulation and boundary sealing
+4. `RangeBound` constructor input is now a closed recursive supported subset.
+   - the typed constructor path no longer requires `unknown`
+   - the readback classifier still exposes broader foreign runtime leaves through `Surrealdb_BoundValue.t`
 
-- `Surrealdb_Surreal.res`: connect/auth/input union helpers
-- `Surrealdb_Session.res`: `accessRecordAsSignin`
-- `Surrealdb_RemoteEngines.res`: `asDict`
-- `Surrealdb_QueryFrame.res`: sealing `Frame.t<unknown>` into opaque `QueryFrame.t`
-- `Surrealdb_Query.res`: `asQueryFrameStream`
+5. `RecordId.idValue` no longer projects compound ids through JSON.
+   - compound ids use a recursive `component` algebra
+   - unsupported nested leaves remain explicit through `option<idValue>`
 
-### Geometry `toJSON` recovery
-
-- 7 geometry modules: `unsafeJsonFromUnknown` assume SDK GeoJSON output is valid JSON
-
-## Corrected Since Bootstrap
-
-1. `Surrealdb_ClientError.asXxx` no longer accepts fake polymorphic `'a`. The public classifiers now accept `unknown`, and direct tests verify that real SDK errors classify while non-errors are rejected.
-
-2. `Surrealdb_RangeBound.included` and `excluded` no longer pretend to preserve a caller type variable. The public input is now explicitly open as `unknown`.
-
-3. `Surrealdb_Frame.fromUnknown` no longer allows callers to manufacture an arbitrary payload type through an `instanceof` check. It now returns `option<t<unknown>>`.
-
-4. `Surrealdb_DriverOptions.makeRaw` and `Surrealdb_DriverContext.makeRawInternal` no longer leave `engines` or `options` unconstrained at the object-construction boundary.
-
-5. `Surrealdb_Value.fromUnknown` now classifies `-2147483648.0` as `Int`, and the public value tests now cover `NaN`, `Infinity`, negative infinity, and large-number boundaries directly.
-
-6. Direct tests now cover `LiveMessage.value`, `Jsonify.value`, `ApiResponse` optional fields, `ApiPromise.then_`, engine subtype casts, and the `Frame.fromUnknown` classifier.
+6. Public consumer proof no longer depends only on package-local cast helpers.
+   - `scripts/packedConsumerProof.mjs` installs the packed tarball into a clean ReScript consumer
+   - the consumer compiles and runs runtime checks against the published package surface
 
 ## Intentional Public Open Boundaries
 
@@ -95,7 +71,6 @@
 
 - `fromUnknown` and `isInstance` classifiers across value, frame, feature, and error modules
 - `Surrealdb_ClientError.asXxx`
-- `Surrealdb_RangeBound.included` / `excluded`
 
 ### Codec and raw transport boundaries
 
@@ -105,18 +80,28 @@
 
 ### Why these remain open
 
-- Query text, event names, codec payloads, and raw server error details are value-dependent at runtime.
-- A closed ReScript type at those boundaries would over-claim what the installed SDK actually proves.
+- query text, event names, codec payloads, and raw server error details are value-dependent at runtime
+- a closed ReScript type at those boundaries would over-claim what the installed SDK actually proves
 
 ## Coverage Status
 
-- Direct tests now exist for every boundary that had been marked `weak` or `missing` in `docs/SOUNDNESS_MATRIX.md`.
-- Remaining rows are intentionally `strong` or `partial`.
-- The remaining `partial` rows are value-dependent or documentation-drift risks rather than unchecked downcasts.
+- direct tests now cover the builder output-domain redesign, explicit `.json()` state transitions, `RangeBound`, `RecordId.idValue`, `Jsonify`, API optional fields, `ApiPromise.then_`, and live message value classification
+- the packed-consumer proof covers:
+  - query/auth typed-path compilation
+  - `JsValue` typed input helpers
+  - `RangeBound` supported constructor input
+  - `RecordId.idValue` supported subset and unsupported remainder
+  - `CborCodec` and `ValueCodec` decode boundaries
 
 ## Residual Risk
 
-- Query result semantics are still value-dependent on query text and remain partially provable.
-- `RecordId.idValue` compound shapes and codec rejected-value branches still have only partial coverage.
-- Event publishers still flatten value-dependent tuples to `array<Surrealdb_Value.t>` by design and stay documented in `docs/TYPE_FIDELITY.md`.
+- query results remain value-dependent on query text and stay intentionally classified rather than schema-typed
+- event publisher callbacks remain flattened to `array<Surrealdb_Value.t>` because the payload tuple depends on the runtime event string
+- codec boundaries remain intentionally open at the foreign-data seam
+- `ApiPromise.then_` remains narrower than the full upstream Promise overload family
 
+## Verdict
+
+The 2026-04-23 release-blocker line is closed.
+
+Current remaining gaps are documented fidelity choices, not unresolved fake-polymorphism or fake-JSON shortcuts on the ordinary typed consumer path.

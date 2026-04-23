@@ -2,6 +2,7 @@ open TestRuntime
 
 external toUnknown: 'a => unknown = "%identity"
 external dictToUnknown: dict<unknown> => unknown = "%identity"
+external arrayToUnknown: array<unknown> => unknown = "%identity"
 external nullableToUnknown: Nullable.t<'a> => unknown = "%identity"
 external intToUnknown: int => unknown = "%identity"
 external floatToUnknown: float => unknown = "%identity"
@@ -9,6 +10,9 @@ external stringToUnknown: string => unknown = "%identity"
 @val external symbolForUnknown: string => unknown = "Symbol.for"
 @val external nanValue: float = "NaN"
 @val external infinityValue: float = "Infinity"
+external jsonFromUnknown: unknown => JSON.t = "%identity"
+@module("surrealdb") @new external makeRawRecordId: (string, unknown) => Surrealdb_RecordId.t = "RecordId"
+@module("../support/SurrealdbTestFixtures.mjs") external functionLeaf: unit => unknown = "functionLeaf"
 
 let jsonText = value =>
   value->JSON.stringifyAny->Option.getOr("")
@@ -18,14 +22,47 @@ let dateTimeCompactText = ((seconds, nanos)) => [
   nanos->BigInt.toString,
 ]
 
+let rec recordIdComponentToJSON = value =>
+  switch value {
+  | Surrealdb_RecordId.Undefined =>
+    JSON.Encode.object(Dict.fromArray([("recordIdComponentType", JSON.Encode.string("undefined"))]))
+  | Surrealdb_RecordId.Null => JSON.Encode.null
+  | Surrealdb_RecordId.Bool(raw) => JSON.Encode.bool(raw)
+  | Surrealdb_RecordId.Int(raw) => JSON.Encode.int(raw)
+  | Surrealdb_RecordId.Float(raw) => JSON.Encode.float(raw)
+  | Surrealdb_RecordId.String(raw) => JSON.Encode.string(raw)
+  | Surrealdb_RecordId.BigInt(raw) =>
+    JSON.Encode.object(
+      Dict.fromArray([
+        ("recordIdComponentType", JSON.Encode.string("bigint")),
+        ("value", JSON.Encode.string(raw->BigInt.toString)),
+      ]),
+    )
+  | Surrealdb_RecordId.ValueClass(raw) => raw->Surrealdb_ValueClass.toJSON->jsonFromUnknown
+  | Surrealdb_RecordId.Array(raw) => raw->Array.map(recordIdComponentToJSON)->JSON.Encode.array
+  | Surrealdb_RecordId.Object(raw) =>
+    let result = Dict.make()
+    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->recordIdComponentToJSON))
+    JSON.Encode.object(result)
+  }
+
+let recordIdComponentArrayText = values =>
+  values->Array.map(recordIdComponentToJSON)->JSON.Encode.array->jsonText
+
+let recordIdComponentObjectText = values => {
+  let json = Dict.make()
+  values->Dict.toArray->Array.forEach(((key, value)) => json->Dict.set(key, value->recordIdComponentToJSON))
+  json->JSON.Encode.object->jsonText
+}
+
 let recordIdValueText = value =>
   switch value {
   | Surrealdb_RecordId.StringId(raw) => `string:${raw}`
   | Surrealdb_RecordId.NumberId(raw) => `number:${raw->Float.toString}`
   | Surrealdb_RecordId.UuidId(raw) => `uuid:${raw->Surrealdb_Uuid.toString}`
   | Surrealdb_RecordId.BigIntId(raw) => `bigint:${raw->BigInt.toString}`
-  | Surrealdb_RecordId.ArrayId(raw) => `array:${raw->JSON.Encode.array->jsonText}`
-  | Surrealdb_RecordId.ObjectId(raw) => `object:${raw->JSON.Encode.object->jsonText}`
+  | Surrealdb_RecordId.ArrayId(raw) => `array:${raw->recordIdComponentArrayText}`
+  | Surrealdb_RecordId.ObjectId(raw) => `object:${raw->recordIdComponentObjectText}`
   }
 
 describe("SurrealDB value surface", () => {
@@ -218,30 +255,32 @@ describe("SurrealDB value surface", () => {
     let arrayRecordId =
       Surrealdb_RecordId.makeWithIdValue(
         "widgets",
-        Surrealdb_RecordId.ArrayId([JSON.Encode.int(1), JSON.Encode.string("two")]),
+        Surrealdb_RecordId.ArrayId([Surrealdb_RecordId.Int(1), Surrealdb_RecordId.String("two")]),
       )
     let objectRecordId =
       Surrealdb_RecordId.makeFromTableWithIdValue(
         table,
-        Surrealdb_RecordId.ObjectId(Dict.fromArray([("slug", JSON.Encode.string("demo"))])),
+        Surrealdb_RecordId.ObjectId(Dict.fromArray([("slug", Surrealdb_RecordId.String("demo"))])),
       )
     let stringId = Surrealdb_StringRecordId.fromString("widgets:alpha")
     let stringIdFromRecord = Surrealdb_StringRecordId.fromRecordId(stringRecordId)
     let stringIdFromString = Surrealdb_StringRecordId.fromStringRecordId(stringId)
-    let begin = Surrealdb_RangeBound.included(table->toUnknown)
+    let begin = Surrealdb_RangeBound.included(Surrealdb_RangeBound.String("widgets"))
     let end_ =
       Surrealdb_RangeBound.excluded(
-        Dict.fromArray([
-          ("count", intToUnknown(3)),
-          ("label", stringToUnknown("x")),
-        ])->dictToUnknown,
+        Surrealdb_RangeBound.Object(
+          Dict.fromArray([
+            ("count", Surrealdb_RangeBound.Int(3)),
+            ("label", Surrealdb_RangeBound.String("x")),
+          ]),
+        ),
       )
     let range = Surrealdb_Range.make(~begin, ~end=end_, ())
     let recordIdRange =
       Surrealdb_RecordIdRange.make(
         ~table="widgets",
-        ~begin=Surrealdb_RangeBound.included("a"->toUnknown),
-        ~end=Surrealdb_RangeBound.excluded("z"->toUnknown),
+        ~begin=Surrealdb_RangeBound.included(Surrealdb_RangeBound.String("a")),
+        ~end=Surrealdb_RangeBound.excluded(Surrealdb_RangeBound.String("z")),
         (),
       )
 
@@ -304,13 +343,13 @@ describe("SurrealDB value surface", () => {
         objectRecordId->Surrealdb_RecordId.tableName,
       ],
       [
-        stringRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        numericRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        numberRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        uuidRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        bigintRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        arrayRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
-        objectRecordId->Surrealdb_RecordId.idValue->recordIdValueText,
+        stringRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        numericRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        numberRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        uuidRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        bigintRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        arrayRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+        objectRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
       ],
       [
         stringRecordId->Surrealdb_RecordId.toString,
@@ -408,13 +447,13 @@ describe("SurrealDB value surface", () => {
       true,
       ["widgets", "widgets", "widgets", "widgets", "widgets", "widgets", "widgets"],
       [
-        "string:alpha",
-        "number:5",
-        "number:5.5",
-        "uuid:018cc251-4f5c-7def-b4c6-000000000001",
-        "bigint:7",
-        "array:[1,\"two\"]",
-        "object:{\"slug\":\"demo\"}",
+        Some("string:alpha"),
+        Some("number:5"),
+        Some("number:5.5"),
+        Some("uuid:018cc251-4f5c-7def-b4c6-000000000001"),
+        Some("bigint:7"),
+        Some("array:[1,\"two\"]"),
+        Some("object:{\"slug\":\"demo\"}"),
       ],
       [
         "widgets:alpha",
@@ -454,6 +493,70 @@ describe("SurrealDB value surface", () => {
       true,
       true,
     ))
+  })
+
+  test("record id supported subset keeps nested value classes and excludes unsupported function leaves", () => {
+    let dateTimeValueClass =
+      Surrealdb_DateTime.fromString("2024-01-02T03:04:05Z")
+      ->toUnknown
+      ->Surrealdb_ValueClass.fromUnknown
+      ->Option.getOrThrow
+    let tableValueClass =
+      Surrealdb_Table.make("orders")->toUnknown->Surrealdb_ValueClass.fromUnknown->Option.getOrThrow
+    let nestedValueClassRecordId =
+      Surrealdb_RecordId.makeWithIdValue(
+        "widgets",
+        Surrealdb_RecordId.ObjectId(
+          Dict.fromArray([
+            ("when", Surrealdb_RecordId.ValueClass(dateTimeValueClass)),
+            (
+              "nested",
+              Surrealdb_RecordId.Array([
+                Surrealdb_RecordId.Int(1),
+                Surrealdb_RecordId.BigInt(2n),
+                Surrealdb_RecordId.ValueClass(tableValueClass),
+              ]),
+            ),
+          ]),
+        ),
+      )
+    let unsupportedLeafRecordId =
+      makeRawRecordId("widgets", [functionLeaf()]->arrayToUnknown)
+
+    (
+      nestedValueClassRecordId->Surrealdb_RecordId.toString,
+      nestedValueClassRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
+      unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.startsWith("widgets:["),
+      unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.includes("rawFunctionLeaf"),
+      unsupportedLeafRecordId->Surrealdb_RecordId.idValue->Option.isSome,
+    )
+    ->Expect.expect
+    ->Expect.toEqual((
+      "widgets:{ \"when\": d\"2024-01-02T03:04:05.000Z\", \"nested\": [ 1, 2, orders ] }",
+      Some("object:{\"when\":\"2024-01-02T03:04:05.000Z\",\"nested\":[1,{\"recordIdComponentType\":\"bigint\",\"value\":\"2\"},\"orders\"]}"),
+      true,
+      true,
+      false,
+    ))
+  })
+
+  test("bound value classification keeps integer boundaries honest", () => {
+    (
+      switch floatToUnknown(-2147483648.0)->Surrealdb_BoundValue.fromUnknown {
+      | Int(value) => value == -2147483648
+      | _ => false
+      },
+      switch floatToUnknown(2147483647.0)->Surrealdb_BoundValue.fromUnknown {
+      | Int(value) => value == 2147483647
+      | _ => false
+      },
+      switch floatToUnknown(2147483648.0)->Surrealdb_BoundValue.fromUnknown {
+      | Float(value) => value == 2147483648.0
+      | _ => false
+      },
+    )
+    ->Expect.expect
+    ->Expect.toEqual((true, true, true))
   })
 
   test("geometry and bound-value wrappers preserve runtime classification", () => {

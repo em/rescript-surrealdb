@@ -34,7 +34,7 @@ let rec fromUnknown = raw =>
     | #boolean => Bool(asBool(raw))
     | #number =>
       let value = asFloat(raw)
-      if Math.floor(value) == value && value > -2147483648.0 && value < 2147483648.0 {
+      if Math.floor(value) == value && value >= -2147483648.0 && value <= 2147483647.0 {
         Int(asInt(raw))
       } else {
         Float(value)

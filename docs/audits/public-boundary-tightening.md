@@ -1,5 +1,9 @@
 # Public Boundary Tightening Audit
 
+## Historical Status
+
+The later `RangeBound`, promise-output, JSON-state, and consumer-proof design now lives in `docs/audits/release-blocker-closure.md`.
+
 ## Claim
 
 - subsystem: public value, live, error, and API boundaries

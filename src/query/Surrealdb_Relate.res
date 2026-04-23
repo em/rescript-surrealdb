@@ -1,7 +1,11 @@
 // src/bindings/Surrealdb_Relate.res — SurrealDB RelatePromise binding.
-// Concern: bind the RelatePromise class from the surrealdb SDK.
-// Source: node_modules/surrealdb/dist/surrealdb.d.ts — SurrealQueryable.relate()
-// returns RelatePromise with compile() and json().
+// Concern: bind RelatePromise with explicit classified-value and JSON-result modes.
+// Source: surrealdb.d.ts — RelatePromise<T, J> resolves to `MaybeJsonify<T, J>`.
+// Boundary: relation configuration keeps SDK input binding types; resolve and
+// stream expose classified `Surrealdb_Value.t` or explicit JSON-mode payloads.
+// Why this shape: relate execution does not preserve a caller-chosen payload
+// generic, but JSON mode is a real upstream state transition.
+// Coverage: tests/connection/SurrealdbSessionSurface_test.res.
 type t<'value>
 
 @send
@@ -10,7 +14,7 @@ external recordNoDataOn: (
   Surrealdb_RecordId.t,
   Surrealdb_Table.t,
   Surrealdb_RecordId.t,
- ) => t<Surrealdb_JsValue.t> = "relate"
+ ) => t<Surrealdb_Value.t> = "relate"
 
 @send
 external recordWithDataOn: (
@@ -19,7 +23,7 @@ external recordWithDataOn: (
   Surrealdb_Table.t,
   Surrealdb_RecordId.t,
   dict<Surrealdb_JsValue.t>,
-) => t<Surrealdb_JsValue.t> = "relate"
+) => t<Surrealdb_Value.t> = "relate"
 
 @send
 external recordArraysNoDataOn: (
@@ -27,7 +31,7 @@ external recordArraysNoDataOn: (
   array<Surrealdb_RecordId.t>,
   Surrealdb_Table.t,
   array<Surrealdb_RecordId.t>,
-) => t<Surrealdb_JsValue.t> = "relate"
+) => t<Surrealdb_Value.t> = "relate"
 
 @send
 external recordArraysWithDataOn: (
@@ -36,7 +40,7 @@ external recordArraysWithDataOn: (
   Surrealdb_Table.t,
   array<Surrealdb_RecordId.t>,
   dict<Surrealdb_JsValue.t>,
-) => t<Surrealdb_JsValue.t> = "relate"
+) => t<Surrealdb_Value.t> = "relate"
 
 let recordsOn = (queryable, fromRecord, edgeTable, toRecord, ~data=?, ()) =>
   switch data {
@@ -73,19 +77,38 @@ external timeout: (t<'value>, Surrealdb_Duration.t) => t<'value> = "timeout"
 external version: (t<'value>, Surrealdb_DateTime.t) => t<'value> = "version"
 
 @send
-external json: t<'value> => t<'value> = "json"
+external json: t<'value> => t<JSON.t> = "json"
 
 @send
 external compile: t<'value> => Surrealdb_BoundQuery.t = "compile"
 
 @send
-external stream: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<'value>> = "stream"
+external streamRaw: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> = "stream"
 
 @send
-external thenResolve: (t<'value>, @uncurry ('value => 'value)) => promise<'value> = "then"
+external thenRaw: (t<'value>, @uncurry (unknown => unknown)) => promise<unknown> = "then"
+
+external asQueryFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t> = "%identity"
+external asJsonFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = "%identity"
+external jsonFromUnknown: unknown => JSON.t = "%identity"
 
 let output = (promise, mode) =>
   promise->outputRaw(mode->Surrealdb_Output.toString)
 
+let stream = promise =>
+  promise->streamRaw->asQueryFrameStream
+
+let streamJson = promise =>
+  promise->streamRaw->asJsonFrameStream
+
 let resolve = promise =>
-  promise->thenResolve(value => value)
+  promise->thenRaw(value => value)->Promise.thenResolve(Surrealdb_Value.fromUnknown)
+
+let resolveJson = promise =>
+  promise->thenRaw(value => value)->Promise.thenResolve(jsonFromUnknown)
+
+let thenResolve = (promise, callback) =>
+  promise->resolve->Promise.thenResolve(callback)
+
+let thenResolveJson = (promise, callback) =>
+  promise->resolveJson->Promise.thenResolve(callback)

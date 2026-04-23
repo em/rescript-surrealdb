@@ -1,23 +1,30 @@
 // src/bindings/Surrealdb_Live.res — SurrealDB live query binding.
-// Concern: bind the managed and unmanaged live-query builders on SurrealQueryable.
-// Source: node_modules/surrealdb/dist/surrealdb.d.ts — SurrealQueryable exposes
-// live(Table) and liveOf(Uuid), returning ManagedLivePromise and UnmanagedLivePromise.
-type managed<'value>
+// Concern: bind live-query builders without exporting a fake record payload
+// generic that the runtime never proves.
+// Source: surrealdb.d.ts — ManagedLivePromise<T> only resolves to LiveSubscription;
+// payload typing lives on each emitted LiveMessage instead.
+// Boundary: managed builder configuration is typed, while live message payloads
+// are classified at `Surrealdb_LiveMessage.value`.
+// Why this shape: the builder resolves only to `LiveSubscription`. Payload
+// classification happens later on each emitted `LiveMessage`.
+// Coverage: tests/connection/SurrealdbSessionSurface_test.res exercises managed
+// and unmanaged live subscription behavior.
+type managed
 type unmanaged
 
-@send external tableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => managed<Surrealdb_JsValue.t> = "live"
+@send external tableOn: (Surrealdb_Queryable.t, Surrealdb_Table.t) => managed = "live"
 @send external ofOn: (Surrealdb_Queryable.t, Surrealdb_Uuid.t) => unmanaged = "liveOf"
 
-@send external diff: managed<'value> => managed<'value> = "diff"
-@send @variadic external fields: (managed<'value>, array<string>) => managed<'value> = "fields"
-@send external value: (managed<'value>, string) => managed<'value> = "value"
-@send external where: (managed<'value>, Surrealdb_Expr.t) => managed<'value> = "where"
-@send @variadic external fetch: (managed<'value>, array<string>) => managed<'value> = "fetch"
-@send external compile: managed<'value> => Surrealdb_BoundQuery.t = "compile"
+@send external diff: managed => managed = "diff"
+@send @variadic external fields: (managed, array<string>) => managed = "fields"
+@send external value: (managed, string) => managed = "value"
+@send external where: (managed, Surrealdb_Expr.t) => managed = "where"
+@send @variadic external fetch: (managed, array<string>) => managed = "fetch"
+@send external compile: managed => Surrealdb_BoundQuery.t = "compile"
 
 @send
 external thenManaged: (
-  managed<'value>,
+  managed,
   @uncurry (Surrealdb_LiveSubscription.t => Surrealdb_LiveSubscription.t),
 ) => promise<Surrealdb_LiveSubscription.t> = "then"
 

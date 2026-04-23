@@ -3,7 +3,13 @@
 // BoundQuery-backed statement builders used across the package surface.
 // Source: node_modules/surrealdb/dist/surrealdb.d.ts — SurrealQueryable.query()
 // accepts raw SurrealQL or BoundQuery and returns Query with collect().
+// Boundary: query text and bindings stay open on input, while collect/stream
+// expose classified `Surrealdb_Value.t` results or explicit JSON-mode results.
+// Why this shape: result tuples depend on runtime query text, but JSON mode is a
+// real upstream state transition.
+// Coverage: tests/connection/SurrealdbSessionSurface_test.res.
 type result = array<Surrealdb_Value.t>
+type jsonResult = array<JSON.t>
 
 type t<'value>
 
@@ -18,13 +24,13 @@ external boundOn: (Surrealdb_Queryable.t, Surrealdb_BoundQuery.t) => t<result> =
 
 @get external inner: t<'value> => Surrealdb_BoundQuery.t = "inner"
 
-@send external json: t<'value> => t<'value> = "json"
+@send external json: t<'value> => t<jsonResult> = "json"
 
 @send
-external collectRaw: t<result> => promise<array<unknown>> = "collect"
+external collectRaw: t<'value> => promise<array<unknown>> = "collect"
 
 @send @variadic
-external collectIndexesRaw: (t<result>, array<int>) => promise<array<unknown>> = "collect"
+external collectIndexesRaw: (t<'value>, array<int>) => promise<array<unknown>> = "collect"
 
 @send
 external responses: t<result> => promise<array<Surrealdb_QueryResponse.t>> = "responses"
@@ -38,22 +44,30 @@ external responsesIndexes: (
 @send
 external streamRaw: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> = "stream"
 
-@send
-external thenResolve: (t<'value>, @uncurry ('value => 'value)) => promise<'value> = "then"
-
 external asQueryFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t> = "%identity"
+external asJsonFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t> = "%identity"
+external jsonFromUnknown: unknown => JSON.t = "%identity"
 
 let classifyResults = values =>
   values->Array.map(Surrealdb_Value.fromUnknown)
 
+let classifyJsonResults = values =>
+  values->Array.map(jsonFromUnknown)
+
 let collect = query =>
   query->collectRaw->Promise.thenResolve(classifyResults)
+
+let collectJson = query =>
+  query->collectRaw->Promise.thenResolve(classifyJsonResults)
 
 let collectIndexes = (query, indexes) =>
   query->collectIndexesRaw(indexes)->Promise.thenResolve(classifyResults)
 
 let stream = query =>
   query->streamRaw->asQueryFrameStream
+
+let streamJson = query =>
+  query->streamRaw->asJsonFrameStream
 
 let textOn = (queryable, sql, ~bindings=?, ()) =>
   switch bindings {
@@ -90,6 +104,15 @@ let streamBound = (db, query) =>
 
 let resolve = promise =>
   promise->collect
+
+let resolveJson = promise =>
+  promise->collectJson
+
+let thenResolve = (promise, callback) =>
+  promise->resolve->Promise.thenResolve(callback)
+
+let thenResolveJson = (promise, callback) =>
+  promise->resolveJson->Promise.thenResolve(callback)
 
 let statement = (query, bindings) => Surrealdb_BoundQuery.fromQuery(query, bindings)
 

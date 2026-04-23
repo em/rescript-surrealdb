@@ -1,17 +1,21 @@
 type result = array<Surrealdb_Value.t>
+type jsonResult = array<JSON.t>
 type t<'value>
 
 let textNoBindingsOn: (Surrealdb_Queryable.t, string) => t<result>
 let textWithBindingsOn: (Surrealdb_Queryable.t, string, dict<Surrealdb_JsValue.t>) => t<result>
 let boundOn: (Surrealdb_Queryable.t, Surrealdb_BoundQuery.t) => t<result>
 let inner: t<'value> => Surrealdb_BoundQuery.t
-let json: t<'value> => t<'value>
+let json: t<'value> => t<jsonResult>
 let collect: t<result> => promise<result>
+let collectJson: t<jsonResult> => promise<jsonResult>
 let collectIndexes: (t<result>, array<int>) => promise<result>
 let responses: t<result> => promise<array<Surrealdb_QueryResponse.t>>
 let responsesIndexes: (t<result>, array<int>) => promise<array<Surrealdb_QueryResponse.t>>
-let stream: t<'value> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t>
-let thenResolve: (t<'value>, ('value => 'value)) => promise<'value>
+let stream: t<result> => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t>
+let streamJson: t<jsonResult> => Surrealdb_AsyncIterable.t<Surrealdb_JsonFrame.t>
+let thenResolve: (t<result>, (result => result)) => promise<result>
+let thenResolveJson: (t<jsonResult>, (jsonResult => jsonResult)) => promise<jsonResult>
 let textOn: (Surrealdb_Queryable.t, string, ~bindings: dict<Surrealdb_JsValue.t>=?, unit) => t<result>
 let text: (Surrealdb_Surreal.t, string, ~bindings: dict<Surrealdb_JsValue.t>=?, unit) => t<result>
 let runTextOn: (Surrealdb_Queryable.t, string) => promise<result>
@@ -29,6 +33,7 @@ let streamBound: (
   Surrealdb_BoundQuery.t,
 ) => Surrealdb_AsyncIterable.t<Surrealdb_QueryFrame.t>
 let resolve: t<result> => promise<result>
+let resolveJson: t<jsonResult> => promise<jsonResult>
 let statement: (string, dict<Surrealdb_JsValue.t>) => Surrealdb_BoundQuery.t
 let runStatementOn: (Surrealdb_Queryable.t, Surrealdb_BoundQuery.t) => promise<result>
 let runStatement: (Surrealdb_Surreal.t, Surrealdb_BoundQuery.t) => promise<result>

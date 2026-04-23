@@ -4,6 +4,7 @@
 
 module Api = {
   module Client = Surrealdb_Api
+  module JsonResponse = Surrealdb_ApiJsonResponse
   module Promise = Surrealdb_ApiPromise
   module Response = Surrealdb_ApiResponse
 }
@@ -56,6 +57,7 @@ module Query = {
   module Expr = Surrealdb_Expr
   module Insert = Surrealdb_Insert
   module Output = Surrealdb_Output
+  module JsonFrame = Surrealdb_JsonFrame
   module Query = Surrealdb_Query
   module QueryFrame = Surrealdb_QueryFrame
   module QueryResponse = Surrealdb_QueryResponse
