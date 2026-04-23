@@ -54,7 +54,7 @@ Every tracked boundary must have at least one direct test that targets the actua
 
 The test must exercise the public boundary directly and would fail if the binding lied about the contract.
 
-When the public boundary accepts `unknown` or another deliberately open foreign type, at least one proof must also show that a normal external consumer can use the boundary without package-local unsafe casts.
+When the public boundary accepts `unknown` or another deliberately open foreign type, at least one repo-owned test must exercise that public boundary without package-local unsafe casts standing in for the real call shape.
 
 ## Release Rule
 
@@ -69,7 +69,8 @@ These do not count as soundness coverage by themselves:
 - compilation
 - a generic integration test that incidentally passes through the boundary
 - a test that never checks the specific failure mode the boundary is guarding against
-- a package-internal test that reaches a public `unknown` boundary only through local `%identity` helpers when no clean external consumer proof exists
+- a package-internal test that reaches a public `unknown` boundary only through local `%identity` helpers when no direct public-surface test exists
+- a recreated consumer app, packed tarball harness, or throwaway external project used as the package's primary proof mechanism
 
 Global coverage thresholds are smoke gates only.
 

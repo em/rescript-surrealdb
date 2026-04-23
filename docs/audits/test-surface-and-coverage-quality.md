@@ -1,3 +1,5 @@
+> Historical contaminated audit. References below to consumer proof are rejected and non-authoritative. Current authority is direct repo-owned `npm test` / Vitest evidence for the binding surface.
+
 # Test Surface And Coverage Quality Audit
 
 Date: 2026-04-23

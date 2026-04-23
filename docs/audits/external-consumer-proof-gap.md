@@ -1,3 +1,5 @@
+> Historical contaminated audit. References below to external-consumer or packed-consumer proof are rejected and non-authoritative. Current authority is direct repo-owned `npm test` / Vitest evidence for the binding surface.
+
 # External Consumer Proof Gap Audit
 
 ## Historical Status

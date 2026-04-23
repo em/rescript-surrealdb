@@ -228,7 +228,9 @@ The detailed process lives in these files:
 
 Follow those files as the concrete workflow and artifact contract.
 
-If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not count as progress. Do not add new public surface, helper breadth, docs polish, or coverage-growth-only tests until the open blockers are closed in code and proved through the required consumer evidence.
+If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not count as progress. Do not add new public surface, helper breadth, docs polish, or coverage-growth-only tests until the open blockers are closed in code and proved through direct binding evidence inside this repo.
+
+Do not recreate throwaway consumer apps, packed-tarball consumer fixtures, or external-project harnesses as the package's proof mechanism. User-reported consumer failures are bug reports to objectify into direct binding defects and repo-owned tests, not a prompt to build fake consumers inside the binding repo.
 
 The process docs define:
 

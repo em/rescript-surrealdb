@@ -1,3 +1,5 @@
+> Historical contaminated audit. References below to clean-consumer proof are rejected and non-authoritative. Current authority is direct repo-owned `npm test` / Vitest evidence for the binding surface.
+
 # Periodic Audit
 
 ## Historical Status
