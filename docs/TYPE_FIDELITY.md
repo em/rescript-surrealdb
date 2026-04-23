@@ -97,6 +97,31 @@ Each entry states:
   - exact `MaybeJsonify<T, J>` propagation for caller-defined `T`
 - Why: upstream tracks a real JSON-mode state. The binding models that state explicitly, but it does not pretend it can preserve arbitrary caller-defined schema types through that transition.
 
+### Promise-builder timeout helpers
+
+- Upstream runtime currently observed:
+  - the installed SDK path compiles timeout clauses as `TIMEOUT TIMEOUT 5s` on the exercised query builders
+- ReScript representation:
+  - `timeout` helpers are exposed across CRUD/select/relate builders
+- Strict supported subset:
+  - none proven yet for the currently exercised SQL-compiling path
+- Unsupported remainder:
+  - any package claim that `timeout()` is a correct, supported helper on those builders until the runtime defect is closed
+- Why: the package must not treat a helper as sound just because it forwards to the upstream method. A forwarded helper that deterministically emits broken query text is still a broken public package surface.
+
+### `Surrealdb_Surreal.health` on `ws/rpc`
+
+- Upstream runtime currently observed:
+  - `health()` over the exercised `ws://127.0.0.1:8787/rpc` path returns `Method not found`
+- ReScript representation:
+  - `Surrealdb_Surreal.health: t => promise<unit>`
+  - `Surrealdb_RpcEngine.health: t => promise<unit>`
+- Strict supported subset:
+  - no successful `ws/rpc` health contract is currently proved
+- Unsupported remainder:
+  - any package claim that `health()` is a supported readiness probe on the exercised `ws/rpc` path until runtime proof exists
+- Why: a public binding cannot call this a healthy supported surface while its own direct runtime probe only proves failure on the transport path the consumer actually uses.
+
 ### `ApiPromise.stream()` and `value()`
 
 - Upstream runtime:

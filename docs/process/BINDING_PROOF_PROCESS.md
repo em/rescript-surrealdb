@@ -112,8 +112,8 @@ Before accepting any open or lossy boundary, prove what the strongest honest pub
 - run `npm run build`
 - run `npm test` when binding code changed
 - run `npm pack --dry-run` for release-facing work
-- for any change that affects a public boundary or package-authored helper surface, add or update direct repo-owned tests that exercise the public binding surface itself
-- when a public claim depends on compile-time rejection, express that through repo-owned type-shape test modules or compile-step fixtures inside this repo, not by recreating throwaway consumer apps
+- for any change that affects a public boundary or package-authored helper surface, prove the packed or published package through a clean external consumer build
+- the consumer proof must use normal consumer syntax at the public boundary; package-internal `%identity` test helpers do not satisfy this gate by themselves
 - inspect emitted JS for representative tricky externals when claiming low-level or zero-cost interop
 - record exact evidence in the audit report
 
@@ -122,7 +122,7 @@ Known-broken runtime behavior must never be counted as release-closing evidence 
 - if a public helper or public runtime call deterministically fails or emits broken output on a supported path, a passing regression test that encodes that failure is evidence for an open blocker, not evidence that the surface is healthy
 - when the package intentionally keeps such a surface public temporarily, `docs/RELEASE_BLOCKERS.md`, `docs/TYPE_FIDELITY.md`, and the relevant audit must all say so explicitly
 - release-closing proof requires either:
-  - a working direct runtime demonstration on the supported path, or
+  - a working direct runtime or packed-consumer demonstration on the supported path, or
   - a narrowed public contract that stops claiming the broken path is supported
 
 ### 7. Run Adversarial Audit
@@ -159,7 +159,7 @@ Before considering the work complete, verify:
 - `docs/TYPE_FIDELITY.md` and `docs/TYPE_SOUNDNESS_AUDIT.md` are current
 - every accepted `unknown`, JSON projection, or `%identity` site has a written reason why tighter modeling or real polymorphism was not truthful
 - every unsupported upstream case is named explicitly, together with the stricter supported subset the package chose instead of widening the full surface
-- any affected public boundary or helper surface has current direct test evidence recorded in the audit trail
+- any affected public boundary or helper surface has a current clean-consumer proof recorded in the audit trail
 - `README.md`, `.changeset/README.md`, `package.json`, and `.github/workflows/release.yml` agree on the release path
 - the repository does not imply local `npm publish` as part of the maintainer workflow
 - release publication is delegated to the repo's GitHub Actions workflow, not a local shell

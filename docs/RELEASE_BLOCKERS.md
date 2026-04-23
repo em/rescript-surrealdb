@@ -12,7 +12,7 @@ New blocker evidence:
 - direct tests currently locking in broken behavior:
   - `tests/query/SurrealdbPromiseConfig_test.res`
   - `tests/connection/SurrealdbSessionSurface_test.res`
-- external user evidence:
+- consumer evidence:
   - `statespace` CLI currently disables `--timeout`
   - `statespace` CLI currently rewrites `health()` failures on `ws/rpc`
 
@@ -30,7 +30,7 @@ New blocker evidence:
 - closure:
   - `Query`, CRUD builders, `Auth`, and `ApiPromise` now expose an explicit JSON-mode transition
   - direct tests fail if `.json()` preserves the wrong public payload shape
-  - the upstream declaration evidence and the current public type-state are recorded in `docs/audits/release-blocker-closure.md`
+  - the upstream declaration evidence and the current public state machine are recorded in `docs/audits/release-blocker-closure.md`
 
 ## Blocker 3: Public Open Boundaries Still Hide Consumer Friction
 
@@ -39,7 +39,7 @@ New blocker evidence:
   - `RangeBound` constructor input is now a closed recursive supported subset instead of a raw `unknown` or a broader classifier type
   - `RecordId.idValue` now exposes the supported recursive subset and returns `option<idValue>` for the intentionally unsupported remainder
   - codec boundaries remain explicitly open only where the upstream contract is genuinely dynamic
-  - direct boundary tests now exercise the remaining open boundaries without package-local `%identity` helpers standing in for the public call shape
+  - the packed-artifact clean consumer proof now exercises the remaining open boundaries without package-local `%identity` helpers
 
 ## Blocker 4: Compound `RecordId.idValue` Fidelity Is Still Only Partially Proved
 
@@ -63,7 +63,7 @@ The next release is blocked until every open row below is closed in code, docs, 
 - required closure:
   - the timeout helper surface must produce correct SurrealQL or be narrowed so the package no longer claims a working timeout helper on paths where it is broken
   - tests must stop treating the broken `TIMEOUT TIMEOUT` output as success
-  - direct runtime proof and direct binding tests must show timeout works on the supported path
+  - packed or live consumer proof must show timeout works on the supported path
 
 ### Blocker 6: `health()` on the supported `ws/rpc` path currently ships as a known failing surface
 
