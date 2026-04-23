@@ -1,6 +1,6 @@
 {
   "name": "rescript-surrealdb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ReScript bindings for the public SurrealDB JavaScript SDK",
   "license": "MIT",
   "type": "module",
