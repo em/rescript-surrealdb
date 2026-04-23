@@ -1,3 +1,4 @@
+---
 "rescript-surrealdb": major
 ---
 
