@@ -7,6 +7,7 @@ export default {
       "tests/connection/**",
       "tests/api/SurrealdbApiCompileSurface_test.mjs",
       "tests/query/SurrealdbOperationCoverage_test.mjs",
+      "tests/query/SurrealdbQueryVariantCoverage_test.mjs",
       "tests/live/SurrealdbLiveSurface_test.mjs",
     ],
     environment: "node",
