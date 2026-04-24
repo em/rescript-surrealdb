@@ -25,9 +25,11 @@
 
 - command or probe:
   - `npm run release`
+  - `npm run version-packages`
   - `node ./scripts/releasePublish.mjs`
 - result:
   - local `npm run release` now refuses with an explicit GitHub Actions-only message
+  - local `npm run version-packages` now refuses outside GitHub Actions
   - local `releasePublish.mjs` refuses without GitHub Actions trusted publishing environment variables
   - `releasePublish.mjs` now exits cleanly when the current package version is already published on npm
 
@@ -42,9 +44,11 @@
   - `docs/process/VERSIONING_CONTRACT.md`
   - `docs/process/README_CONTRACT.md`
   - `scripts/releaseLocalRefusal.mjs`
+  - `scripts/versionPackages.mjs`
   - `scripts/releasePublish.mjs`
 - chosen shape:
   - `npm run release` is a hard local refusal
+  - `npm run version-packages` is a CI-only versioning step for `changesets/action`
   - `npm run release:ci` is the only publish command and checks for GitHub Actions trusted publishing environment
   - `releasePublish.mjs` skips publish instead of failing when the repo version is already on npm
   - docs now state that local shells do not publish
@@ -64,7 +68,7 @@
 ## Adversarial Questions
 
 - question: does this break the existing release workflow
-- evidence-based answer: no. The workflow now calls `npm run release:ci`, which performs the same publish command but only inside GitHub Actions.
+- evidence-based answer: no. The workflow now calls `npm run version-packages` and `npm run release:ci` inside GitHub Actions, which still performs the same versioning and publish steps on the trusted path.
 
 - question: why not let local maintainers publish as a fallback
 - evidence-based answer: this repo already uses trusted publishing through GitHub Actions. A local fallback is a misleading parallel path, not a requirement.
@@ -75,8 +79,8 @@
 ## Failure Modes Targeted
 
 - failure mode: maintainers mistake a local shell for the release authority
-- how the current design prevents or exposes it: `npm run release` fails immediately with an explicit message
-- test or probe covering it: `npm run release`
+- how the current design prevents or exposes it: `npm run release` and `npm run version-packages` both fail immediately with explicit GitHub Actions-only messages
+- test or probe covering it: `npm run release`, `npm run version-packages`
 
 - failure mode: workflow and docs drift apart about who publishes
 - how the current design prevents or exposes it: README, Changesets README, process docs, package scripts, and workflow now all describe the same GitHub Actions-only path
@@ -97,6 +101,8 @@
 
 - command: `npm run release`
 - result: failed intentionally with the local-refusal message
+- command: `npm run version-packages`
+- result: failed intentionally with the GitHub Actions-only message
 
 ### Soundness Matrix Update
 

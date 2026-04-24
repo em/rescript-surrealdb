@@ -81,7 +81,7 @@ npm publication is owned by `.github/workflows/release.yml`. Only GitHub Actions
 - The workflow runs `npm run build` and `npm test` before the changesets publish step. If either fails, nothing publishes.
 - `changesets/action` creates a "Version packages" PR when pending changesets exist. Publishing happens after that PR is merged.
 - `createGithubReleases` defaults to `true` — the action automatically creates GitHub Releases with git tags (e.g., `v0.0.1-alpha.1`) after a successful publish.
-- Local `npm publish` and `npm run release` are forbidden. The agent never runs them.
+- Local `npm publish`, `npm run release`, and `npm run version-packages` are forbidden. The agent never runs them outside GitHub Actions.
 
 ## Auditability
 
