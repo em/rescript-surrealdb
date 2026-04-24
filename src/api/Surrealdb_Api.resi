@@ -14,7 +14,7 @@ let onQueryable: Surrealdb_Queryable.t => t
 let onQueryableWithPrefix: (Surrealdb_Queryable.t, string) => t
 let makeRequest: (
   ~body: Surrealdb_JsValue.t=?,
-  ~method: string=?,
+  ~method: method=?,
   ~headers: dict<string>=?,
   ~query: dict<string>=?,
   unit,

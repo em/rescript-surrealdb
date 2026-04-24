@@ -9,7 +9,6 @@ external unsafeFromEngine: Surrealdb_Engine.t => t = "%identity"
 
 @module("surrealdb") external ctor: ctor = "RpcEngine"
 
-@send external health: t => promise<unit> = "health"
 @send external version: t => promise<Surrealdb_VersionInfo.t> = "version"
 @send external sessions: t => promise<array<Surrealdb_Uuid.t>> = "sessions"
 

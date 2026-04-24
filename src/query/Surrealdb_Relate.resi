@@ -59,8 +59,6 @@ let recordArrays: (
   unit,
 ) => t<Surrealdb_Value.t>
 let unique: t<'value> => t<'value>
-let outputRaw: (t<'value>, string) => t<'value>
-let timeout: (t<'value>, Surrealdb_Duration.t) => t<'value>
 let version: (t<'value>, Surrealdb_DateTime.t) => t<'value>
 let json: t<'value> => t<JSON.t>
 let compile: t<'value> => Surrealdb_BoundQuery.t

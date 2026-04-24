@@ -19,4 +19,9 @@ let error = response =>
   response->errorRaw->Nullable.toOption
 
 let type_ = response =>
-  response->typeRaw->Nullable.toOption
+  response->typeRaw->Nullable.toOption->Option.map(raw =>
+    switch raw->Surrealdb_QueryType.parse {
+    | Some(value) => value
+    | None => throw(Failure(`Unexpected SurrealDB query type: ${raw}`))
+    }
+  )

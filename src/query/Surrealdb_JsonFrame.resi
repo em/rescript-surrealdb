@@ -21,6 +21,6 @@ let errorValue: error => Surrealdb_ServerError.t
 let throw_: error => 'a
 let stats: error => option<Surrealdb_QueryStats.t>
 let doneStats: done => option<Surrealdb_QueryStats.t>
-let doneType: done => string
+let doneType: done => Surrealdb_QueryType.t
 let toJsonObject: t => dict<JSON.t>
 let toJSON: t => JSON.t

@@ -2,7 +2,7 @@
 // Concern: bind DeletePromise with explicit classified-value and JSON-result modes.
 // Source: surrealdb.d.ts — DeletePromise<T, J> resolves to `MaybeJsonify<T, J>`.
 // Boundary: resolve and stream expose classified `Surrealdb_Value.t` or explicit
-// JSON-mode payloads instead of input binding helpers.
+// JSON-mode payloads while keeping delete configuration on the builder.
 // Why this shape: delete execution does not preserve a caller-chosen payload
 // generic, but JSON mode is a real upstream state transition.
 // Coverage: tests/connection/SurrealdbSessionSurface_test.res.
@@ -36,10 +36,7 @@ let fromRange = (db, range) =>
   db->Surrealdb_Surreal.asQueryable->fromRangeOn(range)
 
 @send
-external outputRaw: (t<'value>, string) => t<'value> = "output"
-
-@send
-external timeout: (t<'value>, Surrealdb_Duration.t) => t<'value> = "timeout"
+external outputByRaw: (t<'value>, string) => t<'value> = "output"
 
 @send
 external version: (t<'value>, Surrealdb_DateTime.t) => t<'value> = "version"
@@ -61,7 +58,7 @@ external asJsonFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>
 external jsonFromUnknown: unknown => JSON.t = "%identity"
 
 let output = (promise, mode) =>
-  promise->outputRaw(mode->Surrealdb_Output.toString)
+  promise->outputByRaw(mode->Surrealdb_Output.toString)
 
 let stream = promise =>
   promise->streamRaw->asQueryFrameStream

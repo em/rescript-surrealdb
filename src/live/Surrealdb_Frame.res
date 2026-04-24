@@ -35,7 +35,7 @@ external unsafeDoneFromUnknown: unknown => done<'value> = "%identity"
 @send external throw_: error<'value> => 'a = "throw"
 
 @get external doneStatsRaw: done<'value> => Nullable.t<Surrealdb_QueryStats.t> = "stats"
-@get external doneType: done<'value> => string = "type"
+@get external doneTypeRaw: done<'value> => string = "type"
 
 let fromUnknownWith = (~value, ~ctor, cast) =>
   if JsTypeReflection.instanceOfClass(~instance=value, ~class_=ctor) {
@@ -62,38 +62,51 @@ let stats = frame =>
 let doneStats = frame =>
   frame->doneStatsRaw->Nullable.toOption
 
-let toJsonObject = frame => {
-  let payload = Dict.make()
-  payload->Dict.set("query", JSON.Encode.int(frame->query))
-  switch frame->asValue {
-  | Some(valueFrame) =>
-    payload->Dict.set("frameType", JSON.Encode.string("value"))
-    payload->Dict.set("value", valueFrame->valueData->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON)
-    payload->Dict.set("isSingle", JSON.Encode.bool(valueFrame->valueIsSingle))
-  | None =>
-    switch frame->asError {
-    | Some(errorFrame) =>
-      payload->Dict.set("frameType", JSON.Encode.string("error"))
-      payload->Dict.set("error", errorFrame->errorValue->Surrealdb_ServerError.toJSON)
-      switch errorFrame->stats {
-      | Some(value) => payload->Dict.set("stats", value->Surrealdb_QueryStats.toJSON)
-      | None => ()
-      }
-    | None =>
-      switch frame->asDone {
-      | Some(doneFrame) =>
-        payload->Dict.set("frameType", JSON.Encode.string("done"))
-        payload->Dict.set("type", JSON.Encode.string(doneFrame->doneType))
-        switch doneFrame->doneStats {
-        | Some(value) => payload->Dict.set("stats", value->Surrealdb_QueryStats.toJSON)
-        | None => ()
-        }
-      | None => payload->Dict.set("frameType", JSON.Encode.string("frame"))
-      }
-    }
+let doneType = frame =>
+  switch frame->doneTypeRaw->Surrealdb_QueryType.parse {
+  | Some(value) => value
+  | None => throw(Failure(`Unexpected SurrealDB query type: ${frame->doneTypeRaw}`))
   }
-  payload
-}
+
+let toJsonObject = frame =>
+  [
+    [("query", JSON.Encode.int(frame->query))],
+    switch frame->asValue {
+    | Some(valueFrame) =>
+      [
+        ("frameType", JSON.Encode.string("value")),
+        ("value", valueFrame->valueData->Surrealdb_Value.fromUnknown->Surrealdb_Value.toJSON),
+        ("isSingle", JSON.Encode.bool(valueFrame->valueIsSingle)),
+      ]
+    | None =>
+      switch frame->asError {
+      | Some(errorFrame) =>
+        [
+          ("frameType", JSON.Encode.string("error")),
+          ("error", errorFrame->errorValue->Surrealdb_ServerError.toJSON),
+          ...switch errorFrame->stats {
+          | Some(value) => [("stats", value->Surrealdb_QueryStats.toJSON)]
+          | None => []
+          },
+        ]
+      | None =>
+        switch frame->asDone {
+        | Some(doneFrame) =>
+          [
+            ("frameType", JSON.Encode.string("done")),
+            ("type", JSON.Encode.string(doneFrame->doneType->Surrealdb_QueryType.toString)),
+            ...switch doneFrame->doneStats {
+            | Some(value) => [("stats", value->Surrealdb_QueryStats.toJSON)]
+            | None => []
+            },
+          ]
+        | None => [("frameType", JSON.Encode.string("frame"))]
+        }
+      }
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = frame =>
   frame->toJsonObject->JSON.Encode.object

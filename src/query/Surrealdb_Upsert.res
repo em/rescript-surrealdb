@@ -51,10 +51,7 @@ external patch: (t<'value>, Surrealdb_JsValue.t) => t<'value> = "patch"
 external where: (t<'value>, Surrealdb_Expr.t) => t<'value> = "where"
 
 @send
-external outputRaw: (t<'value>, string) => t<'value> = "output"
-
-@send
-external timeout: (t<'value>, Surrealdb_Duration.t) => t<'value> = "timeout"
+external outputByRaw: (t<'value>, string) => t<'value> = "output"
 
 @send
 external json: t<'value> => t<JSON.t> = "json"
@@ -73,7 +70,7 @@ external asJsonFrameStream: Surrealdb_AsyncIterable.t<Surrealdb_Frame.t<unknown>
 external jsonFromUnknown: unknown => JSON.t = "%identity"
 
 let output = (promise, mode) =>
-  promise->outputRaw(mode->Surrealdb_Output.toString)
+  promise->outputByRaw(mode->Surrealdb_Output.toString)
 
 let stream = promise =>
   promise->streamRaw->asQueryFrameStream

@@ -66,11 +66,10 @@ let defaultFetchImpl: Surrealdb_DriverOptions.fetchImpl
 let connectRaw: (t, string, connectOptions) => promise<bool>
 let connectUrlRaw: (t, Webapi.Url.t, connectOptions) => promise<bool>
 let isConnected: t => bool
-let status: t => string
+let status: t => Surrealdb_ConnectionStatus.t
 let ready: t => promise<unit>
 let close: t => promise<bool>
 let closeSession: t => promise<unit>
-let health: t => promise<unit>
 let version: t => promise<Surrealdb_VersionInfo.t>
 let sessions: t => promise<array<Surrealdb_Uuid.t>>
 let newSession: t => promise<Surrealdb_Session.t>

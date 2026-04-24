@@ -1,7 +1,7 @@
 // src/bindings/Surrealdb_Select.res — SurrealDB SelectPromise binding.
 // Concern: bind SelectPromise with explicit classified-value and JSON-result modes.
 // Source: surrealdb.d.ts — SelectPromise<T, I, J> resolves to `MaybeJsonify<T, J>`.
-// Boundary: input binding helpers stay on configuration methods; `resolve` and
+// Boundary: configuration methods stay explicit on the builder; `resolve` and
 // `stream` expose classified `Surrealdb_Value.t`, while `.json()` moves to
 // explicit JSON-mode results.
 // Why this shape: select execution does not preserve a caller-chosen payload
@@ -47,9 +47,6 @@ external where: (t<'value>, Surrealdb_Expr.t) => t<'value> = "where"
 
 @send @variadic
 external fetch: (t<'value>, array<string>) => t<'value> = "fetch"
-
-@send
-external timeout: (t<'value>, Surrealdb_Duration.t) => t<'value> = "timeout"
 
 @send
 external version: (t<'value>, Surrealdb_DateTime.t) => t<'value> = "version"

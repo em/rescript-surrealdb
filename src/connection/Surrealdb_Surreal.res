@@ -97,7 +97,7 @@ external connectUrlRaw: (t, Webapi.Url.t, connectOptions) => promise<bool> = "co
 @get
 external isConnected: t => bool = "isConnected"
 
-@get external status: t => string = "status"
+@get external statusRaw: t => string = "status"
 @get external ready: t => promise<unit> = "ready"
 
 @send
@@ -105,7 +105,6 @@ external close: t => promise<bool> = "close"
 
 @send external closeSession: t => promise<unit> = "closeSession"
 
-@send external health: t => promise<unit> = "health"
 @send external version: t => promise<Surrealdb_VersionInfo.t> = "version"
 @send external sessions: t => promise<array<Surrealdb_Uuid.t>> = "sessions"
 @send external newSession: t => promise<Surrealdb_Session.t> = "newSession"
@@ -160,6 +159,12 @@ let staticAuthentication = auth =>
 
 let noAuthentication = () =>
   nullProvidedAuth->staticAuthenticationRaw
+
+let status = db =>
+  switch db->statusRaw->Surrealdb_ConnectionStatus.parse {
+  | Some(value) => value
+  | None => throw(Failure(`Unexpected SurrealDB connection status: ${db->statusRaw}`))
+  }
 
 let syncAuthenticationProvider = provider =>
   syncAuthenticationProviderRaw(provider)

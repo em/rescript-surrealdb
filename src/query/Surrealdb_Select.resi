@@ -15,7 +15,6 @@ let start: (t<'value>, int) => t<'value>
 let limit: (t<'value>, int) => t<'value>
 let where: (t<'value>, Surrealdb_Expr.t) => t<'value>
 let fetch: (t<'value>, array<string>) => t<'value>
-let timeout: (t<'value>, Surrealdb_Duration.t) => t<'value>
 let version: (t<'value>, Surrealdb_DateTime.t) => t<'value>
 let json: t<'value> => t<JSON.t>
 let compile: t<'value> => Surrealdb_BoundQuery.t

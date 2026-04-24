@@ -28,7 +28,7 @@ let encodeMethod = value =>
 @send external onQueryableWithPrefix: (Surrealdb_Queryable.t, string) => t = "api"
 
 @obj
-external makeRequest: (
+external makeRequestRaw: (
   ~body: Surrealdb_JsValue.t=?,
   ~method: string=?,
   ~headers: dict<string>=?,
@@ -64,12 +64,16 @@ let setHeader = (api, name, value) =>
 let clearHeader = (api, name) =>
   api->setHeaderRaw(name, Nullable.null)
 
+let makeRequest = (~body=?, ~method=?, ~headers=?, ~query=?, ()) => {
+  let methodValue = method->Option.map(encodeMethod)
+  makeRequestRaw(~body?, ~method=?methodValue, ~headers?, ~query?, ())
+}
+
 let invoke = (api, path, ~method=?, ~body=?, ~headers=?, ~query=?, ()) => {
   if method == None && body == None && headers == None && query == None {
     api->invokePath(path)
   } else {
-  let requestMethod = method->Option.map(encodeMethod)
-    api->invokeRaw(path, makeRequest(~method=?requestMethod, ~body?, ~headers?, ~query?, ()))
+    api->invokeRaw(path, makeRequest(~method?, ~body?, ~headers?, ~query?, ()))
   }
 }
 

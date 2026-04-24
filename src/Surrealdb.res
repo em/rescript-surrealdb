@@ -11,6 +11,7 @@ module Api = {
 
 module Connection = {
   module Auth = Surrealdb_Auth
+  module ConnectionStatus = Surrealdb_ConnectionStatus
   module DriverContext = Surrealdb_DriverContext
   module DriverOptions = Surrealdb_DriverOptions
   module Engine = Surrealdb_Engine
@@ -62,6 +63,7 @@ module Query = {
   module QueryFrame = Surrealdb_QueryFrame
   module QueryResponse = Surrealdb_QueryResponse
   module QueryStats = Surrealdb_QueryStats
+  module QueryType = Surrealdb_QueryType
   module Relate = Surrealdb_Relate
   module Run = Surrealdb_Run
   module Select = Surrealdb_Select
