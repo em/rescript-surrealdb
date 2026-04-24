@@ -209,117 +209,156 @@ let asAlreadyExists = error =>
 let asInternal = error =>
   fromUnknownWith(~value=toUnknown(error), ~ctor=internalCtor, unsafeInternalFromUnknown)
 
-let detailToJsonObject = detail => {
-  let payload = Dict.make()
-  payload->Dict.set("kind", JSON.Encode.string(detail->detailKind))
-  switch detail->detailData {
-  | Some(values) =>
-    let detailsJson = Dict.make()
-    values->Dict.toArray->Array.forEach(((key, value)) => detailsJson->Dict.set(key, value->Surrealdb_ErrorPayload.toJSON))
-    payload->Dict.set("details", JSON.Encode.object(detailsJson))
-  | None => ()
-  }
-  payload
-}
+let detailToJsonObject = detail =>
+  [
+    [("kind", JSON.Encode.string(detail->detailKind))],
+    switch detail->detailData {
+    | Some(values) =>
+      [
+        (
+          "details",
+          values
+          ->Dict.toArray
+          ->Array.map(((key, value)) => (key, value->Surrealdb_ErrorPayload.toJSON))
+          ->Dict.fromArray
+          ->JSON.Encode.object,
+        ),
+      ]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
-let setOptionalString = (payload, key, value) =>
+let optionalStringEntry = (key, value) =>
   switch value {
-  | Some(text) => payload->Dict.set(key, JSON.Encode.string(text))
-  | None => ()
+  | Some(text) => [(key, JSON.Encode.string(text))]
+  | None => []
   }
 
-let rec toJsonObject = error => {
-  let payload = error->asSurrealError->Surrealdb_SurrealError.toJsonObject
-  payload->Dict.set("sdkClass", JSON.Encode.string("ServerError"))
-  payload->Dict.set("kind", JSON.Encode.string(error->kind->Surrealdb_ErrorKind.toString))
-  payload->Dict.set("code", JSON.Encode.int(error->code))
-  switch error->details {
-  | Some(value) => payload->Dict.set("details", value->detailToJsonObject->JSON.Encode.object)
-  | None => ()
-  }
-  switch error->cause {
-  | Some(value) => payload->Dict.set("cause", value->toJsonObject->JSON.Encode.object)
-  | None => ()
-  }
+let timeoutObject = timeout =>
+  Dict.fromArray([
+    ("secs", JSON.Encode.int(timeout->timeoutSecs)),
+    ("nanos", JSON.Encode.int(timeout->timeoutNanos)),
+  ])
 
+let sdkClassEntries = error =>
   switch error->asValidation {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("ValidationError"))
-    payload->Dict.set("isParseError", JSON.Encode.bool(value->validationIsParseError))
-    payload->setOptionalString("parameterName", value->parameterName)
-  | None => ()
-  }
-  switch error->asConfiguration {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("ConfigurationError"))
-    payload->Dict.set(
-      "isLiveQueryNotSupported",
-      JSON.Encode.bool(value->configurationIsLiveQueryNotSupported),
-    )
-  | None => ()
-  }
-  switch error->asThrown {
-  | Some(_) => payload->Dict.set("sdkClass", JSON.Encode.string("ThrownError"))
-  | None => ()
-  }
-  switch error->asQuery {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("QueryError"))
-    payload->Dict.set("isNotExecuted", JSON.Encode.bool(value->queryIsNotExecuted))
-    payload->Dict.set("isTimedOut", JSON.Encode.bool(value->queryIsTimedOut))
-    payload->Dict.set("isCancelled", JSON.Encode.bool(value->queryIsCancelled))
-    switch value->timeout {
-    | Some(timeout) =>
-      let timeoutJson = Dict.make()
-      timeoutJson->Dict.set("secs", JSON.Encode.int(timeout->timeoutSecs))
-      timeoutJson->Dict.set("nanos", JSON.Encode.int(timeout->timeoutNanos))
-      payload->Dict.set("timeout", JSON.Encode.object(timeoutJson))
-    | None => ()
+  | Some(_) => [("sdkClass", JSON.Encode.string("ValidationError"))]
+  | None =>
+    switch error->asConfiguration {
+    | Some(_) => [("sdkClass", JSON.Encode.string("ConfigurationError"))]
+    | None =>
+      switch error->asThrown {
+      | Some(_) => [("sdkClass", JSON.Encode.string("ThrownError"))]
+      | None =>
+        switch error->asQuery {
+        | Some(_) => [("sdkClass", JSON.Encode.string("QueryError"))]
+        | None =>
+          switch error->asSerialization {
+          | Some(_) => [("sdkClass", JSON.Encode.string("SerializationError"))]
+          | None =>
+            switch error->asNotAllowed {
+            | Some(_) => [("sdkClass", JSON.Encode.string("NotAllowedError"))]
+            | None =>
+              switch error->asNotFound {
+              | Some(_) => [("sdkClass", JSON.Encode.string("NotFoundError"))]
+              | None =>
+                switch error->asAlreadyExists {
+                | Some(_) => [("sdkClass", JSON.Encode.string("AlreadyExistsError"))]
+                | None =>
+                  switch error->asInternal {
+                  | Some(_) => [("sdkClass", JSON.Encode.string("InternalError"))]
+                  | None => [("sdkClass", JSON.Encode.string("ServerError"))]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
-  | None => ()
   }
-  switch error->asSerialization {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("SerializationError"))
-    payload->Dict.set(
-      "isDeserialization",
-      JSON.Encode.bool(value->serializationIsDeserialization),
-    )
-  | None => ()
-  }
-  switch error->asNotAllowed {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("NotAllowedError"))
-    payload->Dict.set("isTokenExpired", JSON.Encode.bool(value->notAllowedIsTokenExpired))
-    payload->Dict.set("isInvalidAuth", JSON.Encode.bool(value->notAllowedIsInvalidAuth))
-    payload->Dict.set("isScriptingBlocked", JSON.Encode.bool(value->notAllowedIsScriptingBlocked))
-    payload->setOptionalString("methodName", value->methodName)
-    payload->setOptionalString("functionName", value->functionName)
-  | None => ()
-  }
-  switch error->asNotFound {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("NotFoundError"))
-    payload->setOptionalString("tableName", value->tableName)
-    payload->setOptionalString("recordId", value->recordId)
-    payload->setOptionalString("methodName", value->missingMethodName)
-    payload->setOptionalString("namespaceName", value->namespaceName)
-    payload->setOptionalString("databaseName", value->databaseName)
-  | None => ()
-  }
-  switch error->asAlreadyExists {
-  | Some(value) =>
-    payload->Dict.set("sdkClass", JSON.Encode.string("AlreadyExistsError"))
-    payload->setOptionalString("recordId", value->duplicateRecordId)
-    payload->setOptionalString("tableName", value->duplicateTableName)
-  | None => ()
-  }
-  switch error->asInternal {
-  | Some(_) => payload->Dict.set("sdkClass", JSON.Encode.string("InternalError"))
-  | None => ()
-  }
-  payload
-}
+
+let rec toJsonObject = error =>
+  [
+    error->asSurrealError->Surrealdb_SurrealError.toJsonObject->Dict.toArray,
+    error->sdkClassEntries,
+    [
+      ("kind", JSON.Encode.string(error->kind->Surrealdb_ErrorKind.toString)),
+      ("code", JSON.Encode.int(error->code)),
+    ],
+    switch error->details {
+    | Some(value) => [("details", value->detailToJsonObject->JSON.Encode.object)]
+    | None => []
+    },
+    switch error->cause {
+    | Some(value) => [("cause", value->toJsonObject->JSON.Encode.object)]
+    | None => []
+    },
+    switch error->asValidation {
+    | Some(value) =>
+      [
+        ("isParseError", JSON.Encode.bool(value->validationIsParseError)),
+        ...optionalStringEntry("parameterName", value->parameterName),
+      ]
+    | None => []
+    },
+    switch error->asConfiguration {
+    | Some(value) =>
+      [("isLiveQueryNotSupported", JSON.Encode.bool(value->configurationIsLiveQueryNotSupported))]
+    | None => []
+    },
+    switch error->asQuery {
+    | Some(value) =>
+      [
+        ("isNotExecuted", JSON.Encode.bool(value->queryIsNotExecuted)),
+        ("isTimedOut", JSON.Encode.bool(value->queryIsTimedOut)),
+        ("isCancelled", JSON.Encode.bool(value->queryIsCancelled)),
+        ...switch value->timeout {
+        | Some(timeout) => [("timeout", timeout->timeoutObject->JSON.Encode.object)]
+        | None => []
+        },
+      ]
+    | None => []
+    },
+    switch error->asSerialization {
+    | Some(value) => [("isDeserialization", JSON.Encode.bool(value->serializationIsDeserialization))]
+    | None => []
+    },
+    switch error->asNotAllowed {
+    | Some(value) =>
+      [
+        ("isTokenExpired", JSON.Encode.bool(value->notAllowedIsTokenExpired)),
+        ("isInvalidAuth", JSON.Encode.bool(value->notAllowedIsInvalidAuth)),
+        ("isScriptingBlocked", JSON.Encode.bool(value->notAllowedIsScriptingBlocked)),
+        ...optionalStringEntry("methodName", value->methodName),
+        ...optionalStringEntry("functionName", value->functionName),
+      ]
+    | None => []
+    },
+    switch error->asNotFound {
+    | Some(value) =>
+      [
+        ...optionalStringEntry("tableName", value->tableName),
+        ...optionalStringEntry("recordId", value->recordId),
+        ...optionalStringEntry("methodName", value->missingMethodName),
+        ...optionalStringEntry("namespaceName", value->namespaceName),
+        ...optionalStringEntry("databaseName", value->databaseName),
+      ]
+    | None => []
+    },
+    switch error->asAlreadyExists {
+    | Some(value) =>
+      [
+        ...optionalStringEntry("recordId", value->duplicateRecordId),
+        ...optionalStringEntry("tableName", value->duplicateTableName),
+      ]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = error =>
   error->toJsonObject->JSON.Encode.object

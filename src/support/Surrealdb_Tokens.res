@@ -16,12 +16,14 @@ external make: (
 let refresh = tokens =>
   tokens->refreshRaw->Nullable.toOption
 
-let toJSON = tokens => {
-  let payload = Dict.make()
-  payload->Dict.set("access", JSON.Encode.string(tokens->access))
-  switch tokens->refresh {
-  | Some(value) => payload->Dict.set("refresh", JSON.Encode.string(value))
-  | None => ()
-  }
-  JSON.Encode.object(payload)
-}
+let toJSON = tokens =>
+  [
+    [("access", JSON.Encode.string(tokens->access))],
+    switch tokens->refresh {
+    | Some(value) => [("refresh", JSON.Encode.string(value))]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
+  ->JSON.Encode.object

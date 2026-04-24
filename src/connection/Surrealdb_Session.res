@@ -112,13 +112,12 @@ let accessToken = session =>
 let subscribe = (session, event, listener) =>
   session->subscribeRaw(event, payload => listener(payload->Array.map(Surrealdb_Value.fromUnknown)))
 
-let parameters = session => {
-  let values = Dict.make()
-  session->parametersRaw->Dict.toArray->Array.forEach(((key, value)) =>
-    values->Dict.set(key, value->Surrealdb_Value.fromUnknown)
-  )
-  values
-}
+let parameters = session =>
+  session
+  ->parametersRaw
+  ->Dict.toArray
+  ->Array.map(((key, value)) => (key, value->Surrealdb_Value.fromUnknown))
+  ->Dict.fromArray
 
 let sessionId = session =>
   session->sessionRaw->Nullable.toOption

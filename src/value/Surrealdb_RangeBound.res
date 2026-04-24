@@ -48,9 +48,11 @@ let rec rawValue = (value: input) =>
   | ValueClass(raw) => raw->Surrealdb_ValueClass.toUnknown
   | Array(raw) => raw->Array.map(rawValue)->toUnknown
   | Object(raw) =>
-    let result = Dict.make()
-    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->rawValue))
-    result->toUnknown
+    raw
+    ->Dict.toArray
+    ->Array.map(((key, item)) => (key, item->rawValue))
+    ->Dict.fromArray
+    ->toUnknown
   }
 
 let included = value =>

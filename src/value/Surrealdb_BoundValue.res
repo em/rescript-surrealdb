@@ -48,9 +48,12 @@ let rec fromUnknown = raw =>
       } else if Array.isArray(raw) {
         Array(asArray(raw)->Array.map(fromUnknown))
       } else {
-        let result = Dict.make()
-        asDict(raw)->Dict.toArray->Array.forEach(((key, value)) => result->Dict.set(key, fromUnknown(value)))
-        Object(result)
+        Object(
+          asDict(raw)
+          ->Dict.toArray
+          ->Array.map(((key, value)) => (key, fromUnknown(value)))
+          ->Dict.fromArray,
+        )
       }
     }
   }
@@ -95,7 +98,10 @@ let rec toJSON = value =>
   | ValueClass(raw) => raw->Surrealdb_ValueClass.toJSON->fromUnknown->toJSON
   | Array(items) => JSON.Encode.array(items->Array.map(toJSON))
   | Object(entries) =>
-    let result = Dict.make()
-    entries->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->toJSON))
-    JSON.Encode.object(result)
+    JSON.Encode.object(
+      entries
+      ->Dict.toArray
+      ->Array.map(((key, item)) => (key, item->toJSON))
+      ->Dict.fromArray,
+    )
   }

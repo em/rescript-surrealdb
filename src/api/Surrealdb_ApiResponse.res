@@ -17,28 +17,29 @@ let headers = response =>
 let status = response =>
   response->statusRaw->Nullable.toOption
 
-let toJsonObject = response => {
-  let payload = Dict.make()
-  switch response->status {
-  | Some(value) => payload->Dict.set("status", JSON.Encode.int(value))
-  | None => ()
-  }
-  switch response->headers {
-  | Some(values) =>
-    let headersJson = Dict.make()
-    values->Dict.toArray->Array.forEach(((key, value)) =>
-      headersJson->Dict.set(key, JSON.Encode.string(value))
-    )
-    payload->Dict.set("headers", JSON.Encode.object(headersJson))
-  | None => ()
-  }
-  switch response->body {
-  | Some(value) =>
-    payload->Dict.set("body", value->Surrealdb_Value.toJSON)
-  | None => ()
-  }
-  payload
-}
+let headersToJsonObject = values =>
+  values
+  ->Dict.toArray
+  ->Array.map(((key, value)) => (key, JSON.Encode.string(value)))
+  ->Dict.fromArray
+
+let toJsonObject = response =>
+  [
+    switch response->status {
+    | Some(value) => [("status", JSON.Encode.int(value))]
+    | None => []
+    },
+    switch response->headers {
+    | Some(values) => [("headers", JSON.Encode.object(values->headersToJsonObject))]
+    | None => []
+    },
+    switch response->body {
+    | Some(value) => [("body", value->Surrealdb_Value.toJSON)]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = response =>
   response->toJsonObject->JSON.Encode.object

@@ -112,11 +112,12 @@ let rec fromUnknown: unknown => t = raw =>
       } else if Array.isArray(raw) {
         Array(asArray(raw)->Array.map(fromUnknown))
       } else {
-        let result = Dict.make()
-        asDict(raw)
-        ->Dict.toArray
-        ->Array.forEach(((key, value)) => result->Dict.set(key, fromUnknown(value)))
-        Object(result)
+        Object(
+          asDict(raw)
+          ->Dict.toArray
+          ->Array.map(((key, value)) => (key, fromUnknown(value)))
+          ->Dict.fromArray,
+        )
       }
     | #bigint => Unsupported(BigIntValue(asBigInt(raw)))
     | #function => Unsupported(FunctionValue)
@@ -187,7 +188,10 @@ let rec toJSON = (value: t): JSON.t =>
   | Geometry(geometry) => Surrealdb_Geometry.toJSON(geometry)
   | Array(items) => JSON.Encode.array(items->Array.map(toJSON))
   | Object(entries) =>
-    let result = Dict.make()
-    entries->Dict.toArray->Array.forEach(((key, value)) => result->Dict.set(key, toJSON(value)))
-    JSON.Encode.object(result)
+    JSON.Encode.object(
+      entries
+      ->Dict.toArray
+      ->Array.map(((key, value)) => (key, toJSON(value)))
+      ->Dict.fromArray,
+    )
   }

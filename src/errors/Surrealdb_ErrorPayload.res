@@ -21,11 +21,12 @@ external asFloat: unknown => float = "%identity"
 external asBigInt: unknown => BigInt.t = "%identity"
 external asArray: unknown => array<unknown> = "%identity"
 
-let rec classifyDict = values => {
-  let result = Dict.make()
-  values->Dict.toArray->Array.forEach(((key, value)) => result->Dict.set(key, fromUnknown(value)))
-  result
-} and fromUnknown = raw =>
+let rec classifyDict = values =>
+  values
+  ->Dict.toArray
+  ->Array.map(((key, value)) => (key, fromUnknown(value)))
+  ->Dict.fromArray
+and fromUnknown = raw =>
   switch Surrealdb_Value.classifyTypedValue(raw) {
   | Some(value) => SurrealValue(value)
   | None =>
@@ -60,11 +61,12 @@ let foreignPayload = (payloadType, value) =>
     },
   )
 
-let rec objectJson = entries => {
-  let result = Dict.make()
-  entries->Dict.toArray->Array.forEach(((key, value)) => result->Dict.set(key, value->toJSON))
-  result
-} and toJSON = payload =>
+let rec objectJson = entries =>
+  entries
+  ->Dict.toArray
+  ->Array.map(((key, value)) => (key, value->toJSON))
+  ->Dict.fromArray
+and toJSON = payload =>
   switch payload {
   | Undefined => foreignPayload("undefined", None)
   | Null => foreignPayload("null", None)

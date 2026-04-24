@@ -38,21 +38,24 @@ and classifyCause = rawCause =>
 let cause = error =>
   error->causeRaw->Nullable.toOption->Option.map(classifyCause)
 
-let rec toJsonObject = error => {
-  let payload = Dict.make()
-  payload->Dict.set("name", JSON.Encode.string(error->name))
-  payload->Dict.set("message", JSON.Encode.string(error->message))
-  switch error->stack {
-  | Some(value) => payload->Dict.set("stack", JSON.Encode.string(value))
-  | None => ()
-  }
-  switch error->cause {
-  | Some(Error(causeError)) => payload->Dict.set("cause", causeError->toJsonObject->JSON.Encode.object)
-  | Some(ForeignPayload(causePayload)) => payload->Dict.set("cause", causePayload->Surrealdb_ErrorPayload.toJSON)
-  | None => ()
-  }
-  payload
-}
+let rec toJsonObject = error =>
+  [
+    [
+      ("name", JSON.Encode.string(error->name)),
+      ("message", JSON.Encode.string(error->message)),
+    ],
+    switch error->stack {
+    | Some(value) => [("stack", JSON.Encode.string(value))]
+    | None => []
+    },
+    switch error->cause {
+    | Some(Error(causeError)) => [("cause", causeError->toJsonObject->JSON.Encode.object)]
+    | Some(ForeignPayload(causePayload)) => [("cause", causePayload->Surrealdb_ErrorPayload.toJSON)]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = error =>
   error->toJsonObject->JSON.Encode.object

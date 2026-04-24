@@ -328,9 +328,6 @@ let unsupportedFeatureValue = error =>
 let unavailableFeatureValue = error =>
   error->unavailableFeatureValueRaw->featureValueFromUnknown
 
-let setSdkClass = (payload, value) =>
-  payload->Dict.set("sdkClass", JSON.Encode.string(value))
-
 let causeToJson = cause =>
   switch cause {
   | Surrealdb_SurrealError.Error(error) => error->Surrealdb_SurrealError.toJsonObject->JSON.Encode.object
@@ -343,138 +340,177 @@ let featureValueToJson = value =>
   | ForeignPayload(payload) => payload->Surrealdb_ErrorPayload.toJSON
   }
 
-let toJsonObject = error => {
-  let payload = error->Surrealdb_SurrealError.toJsonObject
-  payload->setSdkClass("SurrealError")
+let jsonEntry = (key, value) => [(key, value)]
 
+let sdkClassEntries = error =>
   switch error->asCallTerminated {
-  | Some(_) => payload->setSdkClass("CallTerminatedError")
-  | None => ()
-  }
-  switch error->asReconnectExhaustion {
-  | Some(_) => payload->setSdkClass("ReconnectExhaustionError")
-  | None => ()
-  }
-  switch error->asReconnectIteration {
-  | Some(_) => payload->setSdkClass("ReconnectIterationError")
-  | None => ()
-  }
-  switch error->asUnexpectedServerResponse {
-  | Some(value) =>
-    payload->setSdkClass("UnexpectedServerResponseError")
-    payload->Dict.set("response", value->unexpectedServerResponseResponse->Surrealdb_ErrorPayload.toJSON)
-  | None => ()
-  }
-  switch error->asUnexpectedConnection {
-  | Some(_) => payload->setSdkClass("UnexpectedConnectionError")
-  | None => ()
-  }
-  switch error->asUnsupportedEngine {
-  | Some(value) =>
-    payload->setSdkClass("UnsupportedEngineError")
-    payload->Dict.set("engine", JSON.Encode.string(value->unsupportedEngineName))
-  | None => ()
-  }
-  switch error->asConnectionUnavailable {
-  | Some(_) => payload->setSdkClass("ConnectionUnavailableError")
-  | None => ()
-  }
-  switch error->asMissingNamespaceDatabase {
-  | Some(_) => payload->setSdkClass("MissingNamespaceDatabaseError")
-  | None => ()
-  }
-  switch error->asHttpConnection {
-  | Some(value) =>
-    payload->setSdkClass("HttpConnectionError")
-    payload->Dict.set("status", JSON.Encode.int(value->httpConnectionStatus))
-    payload->Dict.set("statusText", JSON.Encode.string(value->httpConnectionStatusText))
-    payload->Dict.set(
-      "bufferByteLength",
-      JSON.Encode.int(value->httpConnectionBuffer->arrayBufferByteLength),
-    )
-  | None => ()
-  }
-  switch error->asAuthentication {
-  | Some(_) => payload->setSdkClass("AuthenticationError")
-  | None => ()
-  }
-  switch error->asLiveSubscription {
-  | Some(_) => payload->setSdkClass("LiveSubscriptionError")
-  | None => ()
-  }
-  switch error->asUnsupportedVersion {
-  | Some(value) =>
-    payload->setSdkClass("UnsupportedVersionError")
-    payload->Dict.set("version", JSON.Encode.string(value->unsupportedVersionVersion))
-    payload->Dict.set("minimum", JSON.Encode.string(value->unsupportedVersionMinimum))
-    payload->Dict.set("maximum", JSON.Encode.string(value->unsupportedVersionMaximum))
-  | None => ()
-  }
-  switch error->asExpression {
-  | Some(_) => payload->setSdkClass("ExpressionError")
-  | None => ()
-  }
-  switch error->asPublish {
-  | Some(value) =>
-    payload->setSdkClass("PublishError")
-    payload->Dict.set(
-      "causes",
-      JSON.Encode.array(value->publishCauses->Array.map(causeToJson)),
-    )
-  | None => ()
-  }
-  switch error->asInvalidDate {
-  | Some(_) => payload->setSdkClass("InvalidDateError")
-  | None => ()
-  }
-  switch error->asUnsupportedFeature {
-  | Some(value) =>
-    payload->setSdkClass("UnsupportedFeatureError")
-    payload->Dict.set("feature", value->unsupportedFeatureValue->featureValueToJson)
-  | None => ()
-  }
-  switch error->asUnavailableFeature {
-  | Some(value) =>
-    payload->setSdkClass("UnavailableFeatureError")
-    payload->Dict.set("feature", value->unavailableFeatureValue->featureValueToJson)
-    payload->Dict.set("version", JSON.Encode.string(value->unavailableFeatureVersion))
-  | None => ()
-  }
-  switch error->asInvalidSession {
-  | Some(value) =>
-    payload->setSdkClass("InvalidSessionError")
-    switch value->invalidSession {
-    | Some(session) => payload->Dict.set("session", JSON.Encode.string(session->Surrealdb_Uuid.toString))
-    | None => payload->Dict.set("session", JSON.Encode.null)
+  | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("CallTerminatedError"))
+  | None =>
+    switch error->asReconnectExhaustion {
+    | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("ReconnectExhaustionError"))
+    | None =>
+      switch error->asReconnectIteration {
+      | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("ReconnectIterationError"))
+      | None =>
+        switch error->asUnexpectedServerResponse {
+        | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("UnexpectedServerResponseError"))
+        | None =>
+          switch error->asUnexpectedConnection {
+          | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("UnexpectedConnectionError"))
+          | None =>
+            switch error->asUnsupportedEngine {
+            | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("UnsupportedEngineError"))
+            | None =>
+              switch error->asConnectionUnavailable {
+              | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("ConnectionUnavailableError"))
+              | None =>
+                switch error->asMissingNamespaceDatabase {
+                | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("MissingNamespaceDatabaseError"))
+                | None =>
+                  switch error->asHttpConnection {
+                  | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("HttpConnectionError"))
+                  | None =>
+                    switch error->asAuthentication {
+                    | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("AuthenticationError"))
+                    | None =>
+                      switch error->asLiveSubscription {
+                      | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("LiveSubscriptionError"))
+                      | None =>
+                        switch error->asUnsupportedVersion {
+                        | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("UnsupportedVersionError"))
+                        | None =>
+                          switch error->asExpression {
+                          | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("ExpressionError"))
+                          | None =>
+                            switch error->asPublish {
+                            | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("PublishError"))
+                            | None =>
+                              switch error->asInvalidDate {
+                              | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("InvalidDateError"))
+                              | None =>
+                                switch error->asUnsupportedFeature {
+                                | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("UnsupportedFeatureError"))
+                                | None =>
+                                  switch error->asUnavailableFeature {
+                                  | Some(_) =>
+                                    jsonEntry("sdkClass", JSON.Encode.string("UnavailableFeatureError"))
+                                  | None =>
+                                    switch error->asInvalidSession {
+                                    | Some(_) => jsonEntry("sdkClass", JSON.Encode.string("InvalidSessionError"))
+                                    | None =>
+                                      switch error->asUnsuccessfulApi {
+                                      | Some(_) =>
+                                        jsonEntry("sdkClass", JSON.Encode.string("UnsuccessfulApiError"))
+                                      | None =>
+                                        switch error->asInvalidRecordId {
+                                        | Some(_) =>
+                                          jsonEntry("sdkClass", JSON.Encode.string("InvalidRecordIdError"))
+                                        | None =>
+                                          switch error->asInvalidDuration {
+                                          | Some(_) =>
+                                            jsonEntry("sdkClass", JSON.Encode.string("InvalidDurationError"))
+                                          | None =>
+                                            switch error->asInvalidDecimal {
+                                            | Some(_) =>
+                                              jsonEntry("sdkClass", JSON.Encode.string("InvalidDecimalError"))
+                                            | None =>
+                                              switch error->asInvalidTable {
+                                              | Some(_) =>
+                                                jsonEntry("sdkClass", JSON.Encode.string("InvalidTableError"))
+                                              | None => jsonEntry("sdkClass", JSON.Encode.string("SurrealError"))
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
-  | None => ()
   }
-  switch error->asUnsuccessfulApi {
-  | Some(value) =>
-    payload->setSdkClass("UnsuccessfulApiError")
-    payload->Dict.set("path", JSON.Encode.string(value->unsuccessfulApiPath))
-    payload->Dict.set("method", JSON.Encode.string(value->unsuccessfulApiMethod))
-    payload->Dict.set("response", value->unsuccessfulApiResponse->Surrealdb_ApiResponse.toJSON)
-  | None => ()
-  }
-  switch error->asInvalidRecordId {
-  | Some(_) => payload->setSdkClass("InvalidRecordIdError")
-  | None => ()
-  }
-  switch error->asInvalidDuration {
-  | Some(_) => payload->setSdkClass("InvalidDurationError")
-  | None => ()
-  }
-  switch error->asInvalidDecimal {
-  | Some(_) => payload->setSdkClass("InvalidDecimalError")
-  | None => ()
-  }
-  switch error->asInvalidTable {
-  | Some(_) => payload->setSdkClass("InvalidTableError")
-  | None => ()
-  }
-  payload
-}
+
+let toJsonObject = error =>
+  [
+    error->Surrealdb_SurrealError.toJsonObject->Dict.toArray,
+    error->sdkClassEntries,
+    switch error->asUnexpectedServerResponse {
+    | Some(value) => jsonEntry("response", value->unexpectedServerResponseResponse->Surrealdb_ErrorPayload.toJSON)
+    | None => []
+    },
+    switch error->asUnsupportedEngine {
+    | Some(value) => jsonEntry("engine", JSON.Encode.string(value->unsupportedEngineName))
+    | None => []
+    },
+    switch error->asHttpConnection {
+    | Some(value) =>
+      [
+        ("status", JSON.Encode.int(value->httpConnectionStatus)),
+        ("statusText", JSON.Encode.string(value->httpConnectionStatusText)),
+        ("bufferByteLength", JSON.Encode.int(value->httpConnectionBuffer->arrayBufferByteLength)),
+      ]
+    | None => []
+    },
+    switch error->asUnsupportedVersion {
+    | Some(value) =>
+      [
+        ("version", JSON.Encode.string(value->unsupportedVersionVersion)),
+        ("minimum", JSON.Encode.string(value->unsupportedVersionMinimum)),
+        ("maximum", JSON.Encode.string(value->unsupportedVersionMaximum)),
+      ]
+    | None => []
+    },
+    switch error->asPublish {
+    | Some(value) => jsonEntry("causes", JSON.Encode.array(value->publishCauses->Array.map(causeToJson)))
+    | None => []
+    },
+    switch error->asUnsupportedFeature {
+    | Some(value) => jsonEntry("feature", value->unsupportedFeatureValue->featureValueToJson)
+    | None => []
+    },
+    switch error->asUnavailableFeature {
+    | Some(value) =>
+      [
+        ("feature", value->unavailableFeatureValue->featureValueToJson),
+        ("version", JSON.Encode.string(value->unavailableFeatureVersion)),
+      ]
+    | None => []
+    },
+    switch error->asInvalidSession {
+    | Some(value) =>
+      jsonEntry(
+        "session",
+        switch value->invalidSession {
+        | Some(session) => JSON.Encode.string(session->Surrealdb_Uuid.toString)
+        | None => JSON.Encode.null
+        },
+      )
+    | None => []
+    },
+    switch error->asUnsuccessfulApi {
+    | Some(value) =>
+      [
+        ("path", JSON.Encode.string(value->unsuccessfulApiPath)),
+        ("method", JSON.Encode.string(value->unsuccessfulApiMethod)),
+        ("response", value->unsuccessfulApiResponse->Surrealdb_ApiResponse.toJSON),
+      ]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = error =>
   error->toJsonObject->JSON.Encode.object

@@ -3,7 +3,7 @@
 // factories without inventing private constructors or hidden state.
 // Source: node_modules/surrealdb/dist/surrealdb.d.ts — DriverContext is the
 // object passed into EngineFactory functions.
-// Boundary: package-authored helper around an upstream function-valued record.
+// Boundary: package-authored constructor around an upstream function-valued record.
 // Why this shape: Remote engine factories stay opaque so DriverOptions can
 // accept the upstream engines object without reintroducing a module cycle.
 // Coverage: tests/query/SurrealdbPublicSurface_test.res

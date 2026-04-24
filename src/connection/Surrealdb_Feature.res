@@ -22,19 +22,20 @@ let sinceVersion = feature =>
 let untilVersion = feature =>
   feature->untilVersionRaw->Nullable.toOption
 
-let toJsonObject = feature => {
-  let payload = Dict.make()
-  payload->Dict.set("name", JSON.Encode.string(feature->name))
-  switch feature->sinceVersion {
-  | Some(value) => payload->Dict.set("sinceVersion", JSON.Encode.string(value))
-  | None => ()
-  }
-  switch feature->untilVersion {
-  | Some(value) => payload->Dict.set("untilVersion", JSON.Encode.string(value))
-  | None => ()
-  }
-  payload
-}
+let toJsonObject = feature =>
+  [
+    [("name", JSON.Encode.string(feature->name))],
+    switch feature->sinceVersion {
+    | Some(value) => [("sinceVersion", JSON.Encode.string(value))]
+    | None => []
+    },
+    switch feature->untilVersion {
+    | Some(value) => [("untilVersion", JSON.Encode.string(value))]
+    | None => []
+    },
+  ]
+  ->Belt.Array.concatMany
+  ->Dict.fromArray
 
 let toJSON = feature =>
   feature->toJsonObject->JSON.Encode.object

@@ -81,9 +81,11 @@ let rec rawComponent = value =>
   | Array(raw) =>
     raw->Array.map(rawComponent)->rawArrayToUnknown
   | Object(raw) =>
-    let result = Dict.make()
-    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->rawComponent))
-    result->rawDictToUnknown
+    raw
+    ->Dict.toArray
+    ->Array.map(((key, item)) => (key, item->rawComponent))
+    ->Dict.fromArray
+    ->rawDictToUnknown
   }
 
 let rawIdValue = value =>
@@ -94,9 +96,11 @@ let rawIdValue = value =>
   | BigIntId(raw) => raw->rawBigIntToUnknown
   | ArrayId(raw) => raw->Array.map(rawComponent)->rawArrayToUnknown
   | ObjectId(raw) =>
-    let result = Dict.make()
-    raw->Dict.toArray->Array.forEach(((key, item)) => result->Dict.set(key, item->rawComponent))
-    result->rawDictToUnknown
+    raw
+    ->Dict.toArray
+    ->Array.map(((key, item)) => (key, item->rawComponent))
+    ->Dict.fromArray
+    ->rawDictToUnknown
   }
 
 let makeWithIdValue = (table, value) =>
@@ -114,14 +118,12 @@ let rec arrayComponentsFromUnknown = values =>
   )
 
 and dictComponentsFromUnknown = values =>
-  values->Dict.toArray->Array.reduce(Some(Dict.make()), (state, (key, raw)) =>
+  values->Dict.toArray->Array.reduce(Some(([]: array<(string, component)>)), (state, (key, raw)) =>
     switch (state, componentFromUnknown(raw)) {
-    | (Some(items), Some(value)) =>
-      items->Dict.set(key, value)
-      Some(items)
+    | (Some(items), Some(value)) => Some(Array.concat(items, [(key, value)]))
     | _ => None
     }
-  )
+  )->Option.map(Dict.fromArray)
 
 and componentFromUnknown = raw =>
   switch Surrealdb_ValueClass.fromUnknown(raw) {
