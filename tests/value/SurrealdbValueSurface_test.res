@@ -1,16 +1,14 @@
-open TestRuntime
-
-external toUnknown: 'a => unknown = "%identity"
-external dictToUnknown: dict<unknown> => unknown = "%identity"
-external arrayToUnknown: array<unknown> => unknown = "%identity"
-external nullableToUnknown: Nullable.t<'a> => unknown = "%identity"
-external intToUnknown: int => unknown = "%identity"
-external floatToUnknown: float => unknown = "%identity"
-external stringToUnknown: string => unknown = "%identity"
+let toUnknown = SurrealdbTestCasts.toUnknown
+let dictToUnknown = SurrealdbTestCasts.dictToUnknown
+let arrayToUnknown = SurrealdbTestCasts.arrayToUnknown
+let nullableToUnknown = SurrealdbTestCasts.nullableToUnknown
+let intToUnknown = SurrealdbTestCasts.intToUnknown
+let floatToUnknown = SurrealdbTestCasts.floatToUnknown
+let stringToUnknown = SurrealdbTestCasts.stringToUnknown
 @val external symbolForUnknown: string => unknown = "Symbol.for"
 @val external nanValue: float = "NaN"
 @val external infinityValue: float = "Infinity"
-external jsonFromUnknown: unknown => JSON.t = "%identity"
+let jsonFromUnknown = SurrealdbTestCasts.jsonFromUnknown
 @module("surrealdb") @new external makeRawRecordId: (string, unknown) => Surrealdb_RecordId.t = "RecordId"
 @module("../support/SurrealdbTestFixtures.mjs") external functionLeaf: unit => unknown = "functionLeaf"
 
@@ -65,8 +63,8 @@ let recordIdValueText = value =>
   | Surrealdb_RecordId.ObjectId(raw) => `object:${raw->recordIdComponentObjectText}`
   }
 
-describe("SurrealDB value surface", () => {
-  test("value classification keeps numeric edge cases honest", () => {
+Vitest.describe("SurrealDB value surface", () => {
+  Vitest.test("value classification keeps numeric edge cases honest", t => {
     let nanClassified = floatToUnknown(nanValue)->Surrealdb_Value.fromUnknown
     let positiveInfinityClassified = floatToUnknown(infinityValue)->Surrealdb_Value.fromUnknown
     let negativeInfinityClassified = floatToUnknown(-1.0 *. infinityValue)->Surrealdb_Value.fromUnknown
@@ -74,7 +72,7 @@ describe("SurrealDB value surface", () => {
     let upperBoundClassified = floatToUnknown(2147483647.0)->Surrealdb_Value.fromUnknown
     let tooLargeClassified = floatToUnknown(2147483648.0)->Surrealdb_Value.fromUnknown
 
-    (
+    t->Vitest.expect((
       switch nanClassified {
       | Float(value) => Float.isNaN(value)
       | _ => false
@@ -99,12 +97,10 @@ describe("SurrealDB value surface", () => {
       | Float(value) => value == 2147483648.0
       | _ => false
       },
-    )
-    ->Expect.expect
-    ->Expect.toEqual((true, true, true, true, true, true))
+    ))->Vitest.Expect.toEqual((true, true, true, true, true, true))
   })
 
-  test("decimal and duration wrappers stay callable through the installed runtime", () => {
+  Vitest.test("decimal and duration wrappers stay callable through the installed runtime", t => {
     let decimal = Surrealdb_Decimal.fromString("12.34")
     let decimalScientific = Surrealdb_Decimal.fromScientificNotation("1.234e1")
     let decimalFromFloat = Surrealdb_Decimal.fromFloat(12.34)
@@ -116,7 +112,7 @@ describe("SurrealDB value surface", () => {
     let durationFromParsed = Surrealdb_Duration.parseString("1h30m15s")->Surrealdb_Duration.fromCompact
     let measured = Surrealdb_Duration.measure()()
 
-    (
+    t->Vitest.expect((
       decimal->Surrealdb_Decimal.toString,
       decimal->Surrealdb_Decimal.toJSON,
       decimalScientific->Surrealdb_Decimal.toString,
@@ -178,9 +174,7 @@ describe("SurrealDB value surface", () => {
       ],
       Surrealdb_Duration.isInstance(measured->toUnknown),
       measured->toUnknown->Surrealdb_Duration.fromUnknown->Option.isSome,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))->Vitest.Expect.toEqual((
       "12.34",
       "12.34",
       "12.34",
@@ -235,7 +229,7 @@ describe("SurrealDB value surface", () => {
     ))
   })
 
-  test("datetime, uuid, file, table, record-id, and range wrappers stay typed", () => {
+  Vitest.test("datetime, uuid, file, table, record-id, and range wrappers stay typed", t => {
     let dateTime = Surrealdb_DateTime.fromString("2024-01-02T03:04:05Z")
     let dateTimeFromCompact = dateTime->Surrealdb_DateTime.toCompact->Surrealdb_DateTime.fromCompact
     let dateTimeFromMilliseconds =
@@ -284,7 +278,7 @@ describe("SurrealDB value surface", () => {
         (),
       )
 
-    (
+    t->Vitest.expect((
       dateTime->Surrealdb_DateTime.toString,
       dateTime->Surrealdb_DateTime.toJSON,
       dateTime->Surrealdb_DateTime.toISOString,
@@ -396,9 +390,7 @@ describe("SurrealDB value surface", () => {
       ->Option.map(bound => bound->Surrealdb_RangeBound.value->Surrealdb_BoundValue.toText),
       Surrealdb_RecordIdRange.isInstance(recordIdRange->toUnknown),
       recordIdRange->toUnknown->Surrealdb_RecordIdRange.fromUnknown->Option.isSome,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))->Vitest.Expect.toEqual((
       "2024-01-02T03:04:05.000Z",
       "2024-01-02T03:04:05.000Z",
       "2024-01-02T03:04:05.000Z",
@@ -495,7 +487,7 @@ describe("SurrealDB value surface", () => {
     ))
   })
 
-  test("record id supported subset keeps nested value classes and excludes unsupported function leaves", () => {
+  Vitest.test("record id supported subset keeps nested value classes and excludes unsupported function leaves", t => {
     let dateTimeValueClass =
       Surrealdb_DateTime.fromString("2024-01-02T03:04:05Z")
       ->toUnknown
@@ -523,15 +515,13 @@ describe("SurrealDB value surface", () => {
     let unsupportedLeafRecordId =
       makeRawRecordId("widgets", [functionLeaf()]->arrayToUnknown)
 
-    (
+    t->Vitest.expect((
       nestedValueClassRecordId->Surrealdb_RecordId.toString,
       nestedValueClassRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
       unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.startsWith("widgets:["),
       unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.includes("rawFunctionLeaf"),
       unsupportedLeafRecordId->Surrealdb_RecordId.idValue->Option.isSome,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))->Vitest.Expect.toEqual((
       "widgets:{ \"when\": d\"2024-01-02T03:04:05.000Z\", \"nested\": [ 1, 2, orders ] }",
       Some("object:{\"when\":\"2024-01-02T03:04:05.000Z\",\"nested\":[1,{\"recordIdComponentType\":\"bigint\",\"value\":\"2\"},\"orders\"]}"),
       true,
@@ -540,8 +530,8 @@ describe("SurrealDB value surface", () => {
     ))
   })
 
-  test("bound value classification keeps integer boundaries honest", () => {
-    (
+  Vitest.test("bound value classification keeps integer boundaries honest", t => {
+    t->Vitest.expect((
       switch floatToUnknown(-2147483648.0)->Surrealdb_BoundValue.fromUnknown {
       | Int(value) => value == -2147483648
       | _ => false
@@ -554,12 +544,10 @@ describe("SurrealDB value surface", () => {
       | Float(value) => value == 2147483648.0
       | _ => false
       },
-    )
-    ->Expect.expect
-    ->Expect.toEqual((true, true, true))
+    ))->Vitest.Expect.toEqual((true, true, true))
   })
 
-  test("geometry and bound-value wrappers preserve runtime classification", () => {
+  Vitest.test("geometry and bound-value wrappers preserve runtime classification", t => {
     let point =
       Surrealdb_GeometryPoint.make(
         ~longitude=Surrealdb_GeometryPoint.Float(1.0),
@@ -595,7 +583,7 @@ describe("SurrealDB value surface", () => {
     let boundArray: array<unknown> = [intToUnknown(1), stringToUnknown("two")]
     let bigintValue = Surrealdb_Duration.nanosecondsValue(9)->Surrealdb_Duration.nanoseconds
 
-    (
+    t->Vitest.expect((
       point->Surrealdb_GeometryPoint.coordinates,
       pointDecimal->Surrealdb_GeometryPoint.coordinates,
       point->Surrealdb_GeometryPoint.toJSON->jsonText,
@@ -656,9 +644,7 @@ describe("SurrealDB value surface", () => {
         Surrealdb_Table.make("widgets")->toUnknown->Surrealdb_BoundValue.fromUnknown,
       ]
       ->Array.map(value => (value->Surrealdb_BoundValue.toText, value->Surrealdb_BoundValue.toJSON->jsonText)),
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))->Vitest.Expect.toEqual((
       [1.0, 2.0],
       [1.0, 2.0],
       "{\"type\":\"Point\",\"coordinates\":[1,2]}",

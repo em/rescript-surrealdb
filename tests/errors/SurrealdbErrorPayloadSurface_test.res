@@ -1,19 +1,17 @@
-open TestRuntime
-
-external toUnknown: 'a => unknown = "%identity"
-external dictToUnknown: dict<unknown> => unknown = "%identity"
-external nullableToUnknown: Nullable.t<'a> => unknown = "%identity"
-external intToUnknown: int => unknown = "%identity"
-external floatToUnknown: float => unknown = "%identity"
-external boolToUnknown: bool => unknown = "%identity"
-external stringToUnknown: string => unknown = "%identity"
+let toUnknown = SurrealdbTestCasts.toUnknown
+let dictToUnknown = SurrealdbTestCasts.dictToUnknown
+let nullableToUnknown = SurrealdbTestCasts.nullableToUnknown
+let intToUnknown = SurrealdbTestCasts.intToUnknown
+let floatToUnknown = SurrealdbTestCasts.floatToUnknown
+let boolToUnknown = SurrealdbTestCasts.boolToUnknown
+let stringToUnknown = SurrealdbTestCasts.stringToUnknown
 @val external symbolForUnknown: string => unknown = "Symbol.for"
 
 let jsonText = value =>
   value->JSON.stringifyAny->Option.getOr("")
 
-describe("SurrealDB error payload surface", () => {
-  test("foreign payloads classify primitives, arrays, surreal values, and typed dicts", () => {
+Vitest.describe("SurrealDB error payload surface", () => {
+  Vitest.test("foreign payloads classify primitives, arrays, surreal values, and typed dicts", t => {
     let nestedArray: array<unknown> = [boolToUnknown(true), Surrealdb_Table.make("widgets")->toUnknown]
     let rawDict: dict<unknown> =
       Dict.fromArray([
@@ -24,7 +22,7 @@ describe("SurrealDB error payload surface", () => {
     let bigintValue = Surrealdb_Duration.nanosecondsValue(9)->Surrealdb_Duration.nanoseconds
     let objectPayload = Surrealdb_ErrorPayload.Object(rawDict->Surrealdb_ErrorPayload.classifyDict)
 
-    (
+    t->Vitest.expect((
       [
         None->toUnknown->Surrealdb_ErrorPayload.fromUnknown,
         Nullable.null->nullableToUnknown->Surrealdb_ErrorPayload.fromUnknown,
@@ -44,9 +42,8 @@ describe("SurrealDB error payload surface", () => {
       ->Surrealdb_ErrorPayload.classifyDict
       ->Dict.toArray
       ->Array.map(((key, value)) => (key, value->Surrealdb_ErrorPayload.toJSON->jsonText)),
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))
+    ->Vitest.Expect.toEqual((
       [
         "{\"foreignPayloadType\":\"undefined\"}",
         "{\"foreignPayloadType\":\"null\"}",

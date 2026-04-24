@@ -65,12 +65,13 @@ When the public boundary accepts `unknown` or another deliberately open foreign 
 These do not count as soundness coverage by themselves:
 
 - high aggregate coverage percentage
-- a low global coverage threshold such as the current Vitest gate
+- a global coverage threshold by itself, including the current Vitest gate
 - compilation
 - a generic integration test that incidentally passes through the boundary
 - a test that never checks the specific failure mode the boundary is guarding against
 - a package-internal test that reaches a public `unknown` boundary only through local `%identity` helpers when no direct public-surface test exists
 - a recreated consumer app, packed tarball harness, or throwaway external project used as the package's primary proof mechanism
+- a repo-authored replacement Vitest DSL built from direct raw Vitest bindings instead of `rescript-vitest`
 
 Global coverage thresholds are smoke gates only.
 

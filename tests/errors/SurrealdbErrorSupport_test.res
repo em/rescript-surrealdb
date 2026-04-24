@@ -1,8 +1,6 @@
-open TestRuntime
-
-external stringToUnknown: string => unknown = "%identity"
-external toUnknown: 'a => unknown = "%identity"
-external dictToUnknown: dict<unknown> => unknown = "%identity"
+let stringToUnknown = SurrealdbTestCasts.stringToUnknown
+let toUnknown = SurrealdbTestCasts.toUnknown
+let dictToUnknown = SurrealdbTestCasts.dictToUnknown
 @module("surrealdb") @new external makeSurrealError: string => Surrealdb_SurrealError.t = "SurrealError"
 @module("surrealdb") @new external makeUnexpectedConnectionError: unknown => Surrealdb_SurrealError.t = "UnexpectedConnectionError"
 @module("surrealdb") @new external makePublishError: array<unknown> => Surrealdb_SurrealError.t = "PublishError"
@@ -42,8 +40,8 @@ let objectField = (entries, key) =>
   | None => None
   }
 
-describe("SurrealDB error support", () => {
-  test("parseRpcError builds typed validation errors", () => {
+Vitest.describe("SurrealDB error support", () => {
+  Vitest.test("parseRpcError builds typed validation errors", t => {
     let error = Surrealdb_ServerError.makeRpcErrorObject(
       ~code=(-32000),
       ~message="parse failure",
@@ -51,22 +49,22 @@ describe("SurrealDB error support", () => {
       ~details=detail("Parse"),
       (),
     )->Surrealdb_ServerError.parseRpcError
-    error->Surrealdb_ServerError.asValidation->Option.isSome->Expect.expect->Expect.toBe(true)
-    error->Surrealdb_ServerError.kind->Expect.expect->Expect.toBe(Surrealdb_ErrorKind.validation)
-    error->Surrealdb_ServerError.code->Expect.expect->Expect.toBe(-32000)
-    error->Surrealdb_ServerError.details
-    ->Option.map(Surrealdb_ServerError.detailKind)
-    ->Expect.expect
-    ->Expect.toEqual(Some("Parse"))
-    error->Surrealdb_ServerError.asValidation
-    ->Option.map(Surrealdb_ServerError.validationIsParseError)
-    ->Expect.expect
-    ->Expect.toEqual(Some(true))
+    t->Vitest.expect(error->Surrealdb_ServerError.asValidation->Option.isSome)->Vitest.Expect.toBe(true)
+    t->Vitest.expect(error->Surrealdb_ServerError.kind)->Vitest.Expect.toBe(Surrealdb_ErrorKind.validation)
+    t->Vitest.expect(error->Surrealdb_ServerError.code)->Vitest.Expect.toBe(-32000)
+    t->Vitest.expect(
+      error->Surrealdb_ServerError.details
+      ->Option.map(Surrealdb_ServerError.detailKind),
+    )->Vitest.Expect.toEqual(Some("Parse"))
+    t->Vitest.expect(
+      error->Surrealdb_ServerError.asValidation
+      ->Option.map(Surrealdb_ServerError.validationIsParseError),
+    )->Vitest.Expect.toEqual(Some(true))
 
     let payload =
       error->Surrealdb_ServerError.toJSON->JSON.Decode.object->Option.getOr(Dict.make())
     let details = payload->objectField("details")->Option.getOr(Dict.make())
-    (
+    t->Vitest.expect((
       payload->stringField("name"),
       payload->stringField("message"),
       payload->stringField("sdkClass"),
@@ -74,9 +72,7 @@ describe("SurrealDB error support", () => {
       payload->boolField("isParseError"),
       details->stringField("kind"),
       payload->stringField("stack")->Option.isSome,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))->Vitest.Expect.toEqual((
       Some("ValidationError"),
       Some("parse failure"),
       Some("ValidationError"),
@@ -87,7 +83,7 @@ describe("SurrealDB error support", () => {
     ))
   })
 
-  test("error payloads and top-level classification stay typed", () => {
+  Vitest.test("error payloads and top-level classification stay typed", t => {
     let serverError = Surrealdb_ServerError.makeRpcErrorObject(
       ~code=(-32001),
       ~message="invalid parameter",
@@ -103,59 +99,55 @@ describe("SurrealDB error support", () => {
     let unexpectedConnection = makeUnexpectedConnectionError(stringToUnknown("socket closed"))
     let unsupportedFeature = makeUnsupportedFeatureError(Surrealdb_Features.liveQueries)
 
-    serverError->toUnknown->Surrealdb_Error.fromUnknown->Expect.expect->Expect.toEqual(Some(Surrealdb_Error.Server(serverError)))
-    publishError->toUnknown->Surrealdb_Error.fromUnknown->Expect.expect->Expect.toEqual(Some(Surrealdb_Error.Client(publishError)))
+    t->Vitest.expect(serverError->toUnknown->Surrealdb_Error.fromUnknown)->Vitest.Expect.toEqual(Some(Surrealdb_Error.Server(serverError)))
+    t->Vitest.expect(publishError->toUnknown->Surrealdb_Error.fromUnknown)->Vitest.Expect.toEqual(Some(Surrealdb_Error.Client(publishError)))
     let baseError = makeSurrealError("plain surreal error")
-    baseError->toUnknown->Surrealdb_Error.fromUnknown->Expect.expect->Expect.toEqual(Some(Surrealdb_Error.Base(baseError)))
+    t->Vitest.expect(baseError->toUnknown->Surrealdb_Error.fromUnknown)->Vitest.Expect.toEqual(Some(Surrealdb_Error.Base(baseError)))
 
-    publishError
-    ->toUnknown
-    ->Surrealdb_ClientError.asPublish
-    ->Option.map(Surrealdb_ClientError.publishCauses)
-    ->Expect.expect
-    ->Expect.toEqual(Some([
+    t->Vitest.expect(
+      publishError
+      ->toUnknown
+      ->Surrealdb_ClientError.asPublish
+      ->Option.map(Surrealdb_ClientError.publishCauses),
+    )->Vitest.Expect.toEqual(Some([
       Surrealdb_SurrealError.ForeignPayload(Surrealdb_ErrorPayload.String("boom")),
       Surrealdb_SurrealError.Error(nestedPublishError),
     ]))
 
-    unexpectedConnection->Surrealdb_SurrealError.cause->Expect.expect->Expect.toEqual(
+    t->Vitest.expect(unexpectedConnection->Surrealdb_SurrealError.cause)->Vitest.Expect.toEqual(
       Some(Surrealdb_SurrealError.ForeignPayload(Surrealdb_ErrorPayload.String("socket closed"))),
     )
 
-    unsupportedFeature
-    ->toUnknown
-    ->Surrealdb_ClientError.asUnsupportedFeature
-    ->Option.map(Surrealdb_ClientError.unsupportedFeatureValue)
-    ->Expect.expect
-    ->Expect.toEqual(Some(Surrealdb_ClientError.Feature(Surrealdb_Features.liveQueries)))
+    t->Vitest.expect(
+      unsupportedFeature
+      ->toUnknown
+      ->Surrealdb_ClientError.asUnsupportedFeature
+      ->Option.map(Surrealdb_ClientError.unsupportedFeatureValue),
+    )->Vitest.Expect.toEqual(Some(Surrealdb_ClientError.Feature(Surrealdb_Features.liveQueries)))
 
-    serverError->Surrealdb_ServerError.details
-    ->Option.flatMap(Surrealdb_ServerError.detailData)
-    ->Option.flatMap(values => values->Dict.get("name"))
-    ->Expect.expect
-    ->Expect.toEqual(Some(Surrealdb_ErrorPayload.String("query")))
+    t->Vitest.expect(
+      serverError->Surrealdb_ServerError.details
+      ->Option.flatMap(Surrealdb_ServerError.detailData)
+      ->Option.flatMap(values => values->Dict.get("name")),
+    )->Vitest.Expect.toEqual(Some(Surrealdb_ErrorPayload.String("query")))
   })
 
-  test("client-error classifiers stay open at unknown and reject non-errors", () => {
+  Vitest.test("client-error classifiers stay open at unknown and reject non-errors", t => {
     let publishError = makePublishError([stringToUnknown("boom")])
     let randomPayload: dict<unknown> = Dict.make()
     randomPayload->Dict.set("kind", stringToUnknown("not-a-client-error"))
 
-    (
+    t->Vitest.expect((
       publishError->toUnknown->Surrealdb_ClientError.asPublish->Option.isSome,
       randomPayload->dictToUnknown->Surrealdb_ClientError.asPublish->Option.isSome,
       stringToUnknown("boom")->Surrealdb_ClientError.asHttpConnection->Option.isSome,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((true, false, false))
+    ))->Vitest.Expect.toEqual((true, false, false))
   })
 
-  test("version support constants stay callable from the SDK", () => {
-    Surrealdb_VersionSupport.isVersionSupported(Surrealdb_VersionSupport.minimumVersion)
-    ->Expect.expect
-    ->Expect.toBe(true)
-    Surrealdb_VersionSupport.isVersionSupported("1.0.0")
-    ->Expect.expect
-    ->Expect.toBe(false)
+  Vitest.test("version support constants stay callable from the SDK", t => {
+    t->Vitest.expect(Surrealdb_VersionSupport.isVersionSupported(Surrealdb_VersionSupport.minimumVersion))
+    ->Vitest.Expect.toBe(true)
+    t->Vitest.expect(Surrealdb_VersionSupport.isVersionSupported("1.0.0"))
+    ->Vitest.Expect.toBe(false)
   })
 })

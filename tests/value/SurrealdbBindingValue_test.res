@@ -1,8 +1,6 @@
-open TestRuntime
-
-external toUnknown: 'a => unknown = "%identity"
-external intToUnknown: int => unknown = "%identity"
-external stringToUnknown: string => unknown = "%identity"
+let toUnknown = SurrealdbTestCasts.toUnknown
+let intToUnknown = SurrealdbTestCasts.intToUnknown
+let stringToUnknown = SurrealdbTestCasts.stringToUnknown
 
 let decodeObject = raw =>
   switch raw->Surrealdb_Value.fromUnknown {
@@ -20,17 +18,17 @@ let decodedObjectJson = decoded =>
   | Error(_) => "<decode-error>"
   }
 
-describe("SurrealDB binding values", () => {
-  test("Future values classify and stringify through Surrealdb_Value", () => {
+Vitest.describe("SurrealDB binding values", () => {
+  Vitest.test("Future values classify and stringify through Surrealdb_Value", t => {
     let future = Surrealdb_Future.make("time::now()")
     let value = future->toUnknown->Surrealdb_Value.fromUnknown
-    value->Surrealdb_Value.toText->TestRuntime.Expect.expect->TestRuntime.Expect.toBe("<future> time::now()")
-    value->Surrealdb_Value.toJSON->JSON.stringifyAny->Option.getOr("")->TestRuntime.Expect.expect->TestRuntime.Expect.toBe(
+    t->Vitest.expect(value->Surrealdb_Value.toText)->Vitest.Expect.toBe("<future> time::now()")
+    t->Vitest.expect(value->Surrealdb_Value.toJSON->JSON.stringifyAny->Option.getOr(""))->Vitest.Expect.toBe(
       "\"<future> time::now()\"",
     )
   })
 
-  test("CborCodec decodeWith requires explicit decode evidence", () => {
+  Vitest.test("CborCodec decodeWith requires explicit decode evidence", t => {
     let codec = Surrealdb_CborCodec.default()
     let payload: dict<unknown> = Dict.make()
     payload->Dict.set("count", intToUnknown(3))
@@ -46,46 +44,40 @@ describe("SurrealDB binding values", () => {
           }
         )
 
-    (
+    t->Vitest.expect((
       decoded->decodedObjectJson,
       switch rejected {
       | Error(Surrealdb_CborCodec.RejectedValue(_)) => true
       | Ok(_) => false
       },
-    )
-    ->TestRuntime.Expect.expect
-    ->TestRuntime.Expect.toEqual(("{\"count\":3,\"name\":\"alpha\"}", true))
+    ))->Vitest.Expect.toEqual(("{\"count\":3,\"name\":\"alpha\"}", true))
   })
 
-  test("ValueCodec decodeWith preserves the same checked decode contract", () => {
+  Vitest.test("ValueCodec decodeWith preserves the same checked decode contract", t => {
     let codec = Surrealdb_CborCodec.default()->Surrealdb_ValueCodec.fromCborCodec
     let payload: dict<unknown> = Dict.make()
     payload->Dict.set("count", intToUnknown(7))
     let bytes = codec->Surrealdb_ValueCodec.encode(payload->toUnknown)
 
-    (
+    t->Vitest.expect((
       codec->Surrealdb_ValueCodec.decodeWith(bytes, decodeObject)->decodedObjectJson,
       switch codec->Surrealdb_ValueCodec.decodeWith(bytes, _raw => None) {
       | Error(Surrealdb_ValueCodec.RejectedValue(_)) => true
       | Ok(_) => false
       },
-    )
-    ->TestRuntime.Expect.expect
-    ->TestRuntime.Expect.toEqual(("{\"count\":7}", true))
+    ))->Vitest.Expect.toEqual(("{\"count\":7}", true))
   })
 
-  test("bigint values stay explicit instead of collapsing into None", () => {
+  Vitest.test("bigint values stay explicit instead of collapsing into None", t => {
     let value =
       Surrealdb_Duration.fromString("1ns")
       ->Surrealdb_Duration.nanoseconds
       ->toUnknown
       ->Surrealdb_Value.fromUnknown
 
-    (
+    t->Vitest.expect((
       value->Surrealdb_Value.toText,
       value->Surrealdb_Value.toJSON->JSON.stringifyAny->Option.getOr(""),
-    )
-    ->TestRuntime.Expect.expect
-    ->TestRuntime.Expect.toEqual(("1n", "{\"unsupported\":\"bigint\",\"value\":\"1\"}"))
+    ))->Vitest.Expect.toEqual(("1n", "{\"unsupported\":\"bigint\",\"value\":\"1\"}"))
   })
 })

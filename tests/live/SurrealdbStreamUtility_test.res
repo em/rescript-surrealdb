@@ -1,5 +1,3 @@
-open TestRuntime
-
 let payloadToString = payload =>
   payload
   ->Array.map(Surrealdb_Value.toJSON)
@@ -7,17 +5,17 @@ let payloadToString = payload =>
   ->JSON.stringifyAny
   ->Option.getOr("")
 
-describe("SurrealDB stream utilities", () => {
-  testAsync("ChannelIterator yields submitted values", async () => {
+Vitest.describe("SurrealDB stream utilities", () => {
+  Vitest.testAsync("ChannelIterator yields submitted values", async t => {
     let iterator = Surrealdb_ChannelIterator.make()
     iterator->Surrealdb_ChannelIterator.submit("alpha")
     let result = await iterator->Surrealdb_ChannelIterator.next
-    result->Surrealdb_ChannelIterator.done->Expect.expect->Expect.toBe(false)
-    result->Surrealdb_ChannelIterator.value->Option.getOr("")->Expect.expect->Expect.toBe("alpha")
+    t->Vitest.expect(result->Surrealdb_ChannelIterator.done)->Vitest.Expect.toBe(false)
+    t->Vitest.expect(result->Surrealdb_ChannelIterator.value->Option.getOr(""))->Vitest.Expect.toBe("alpha")
     iterator->Surrealdb_ChannelIterator.cancel
   })
 
-  testAsync("Publisher subscribes and resolves first matching event", async () => {
+  Vitest.testAsync("Publisher subscribes and resolves first matching event", async t => {
     let publisher = Surrealdb_Publisher.make()
     let seen = ref("")
     let unsubscribe = publisher->Surrealdb_Publisher.subscribe("tick", payload => {
@@ -27,7 +25,7 @@ describe("SurrealDB stream utilities", () => {
     publisher->Surrealdb_Publisher.publish("tick", [Surrealdb_JsValue.string("alpha"), Surrealdb_JsValue.int(2)])
     let resolvedPayload = await first
     unsubscribe()
-    seen.contents->Expect.expect->Expect.toBe("[\"alpha\",2]")
-    resolvedPayload->payloadToString->Expect.expect->Expect.toBe("[\"alpha\",2]")
+    t->Vitest.expect(seen.contents)->Vitest.Expect.toBe("[\"alpha\",2]")
+    t->Vitest.expect(resolvedPayload->payloadToString)->Vitest.Expect.toBe("[\"alpha\",2]")
   })
 })

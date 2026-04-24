@@ -232,6 +232,8 @@ If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not c
 
 Do not recreate throwaway consumer apps, packed-tarball consumer fixtures, or external-project harnesses as the package's proof mechanism. User-reported consumer failures are bug reports to objectify into direct binding defects and repo-owned tests, not a prompt to build fake consumers inside the binding repo.
 
+ReScript-authored tests must use `rescript-vitest` as the test framework boundary. Do not replace it with a repo-owned Vitest DSL built from direct raw Vitest externals.
+
 The process docs define:
 
 - required audit artifacts

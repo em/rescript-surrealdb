@@ -1,8 +1,6 @@
-open TestRuntime
-
-describe("SurrealDB enum helpers", () => {
-  test("error kinds round-trip through the closed variant surface", () => {
-    (
+Vitest.describe("SurrealDB enum surface", () => {
+  Vitest.test("error kinds round-trip through the closed variant surface", t => {
+    t->Vitest.expect((
       Surrealdb_ErrorKind.all->Array.map(kind => kind->Surrealdb_ErrorKind.toString),
       [
         "Validation",
@@ -18,9 +16,8 @@ describe("SurrealDB enum helpers", () => {
         "FutureKind",
       ]->Array.map(Surrealdb_ErrorKind.fromString),
       Surrealdb_ErrorKind.Raw("FutureKind")->Surrealdb_ErrorKind.toString,
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))
+    ->Vitest.Expect.toEqual((
       [
         "Validation",
         "Configuration",
@@ -50,8 +47,8 @@ describe("SurrealDB enum helpers", () => {
     ))
   })
 
-  test("query outputs parse and stringify across every public case", () => {
-    (
+  Vitest.test("query outputs parse and stringify across every public case", t => {
+    t->Vitest.expect((
       [
         Surrealdb_Output.None,
         Surrealdb_Output.Null,
@@ -68,9 +65,8 @@ describe("SurrealDB enum helpers", () => {
         "  AFTER  ",
         "invalid",
       ]->Array.map(Surrealdb_Output.parse),
-    )
-    ->Expect.expect
-    ->Expect.toEqual((
+    ))
+    ->Vitest.Expect.toEqual((
       ["none", "null", "diff", "before", "after"],
       [
         Some(Surrealdb_Output.None),

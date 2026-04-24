@@ -2,7 +2,9 @@
   "name": "rescript-surrealdb",
   "namespace": false,
   "dependencies": [
-    "rescript-webapi"
+    "rescript-nodejs",
+    "rescript-webapi",
+    "rescript-vitest"
   ],
   "sources": [
     {
