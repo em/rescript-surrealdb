@@ -102,25 +102,33 @@ Each entry states:
 - Upstream runtime currently observed:
   - the installed SDK path compiles timeout clauses as `TIMEOUT TIMEOUT 5s` on the exercised query builders
 - ReScript representation:
-  - `timeout` helpers are exposed across CRUD/select/relate builders
+  - no public builder `timeout` helper is exposed on:
+    - `Surrealdb_Select`
+    - `Surrealdb_Create`
+    - `Surrealdb_Update`
+    - `Surrealdb_Upsert`
+    - `Surrealdb_Delete`
+    - `Surrealdb_Insert`
+    - `Surrealdb_Relate`
 - Strict supported subset:
-  - none proven yet for the currently exercised SQL-compiling path
+  - explicit raw SurrealQL authored through `Surrealdb_Query.text`, `Surrealdb_Query.statement`, or other caller-owned query text paths
 - Unsupported remainder:
-  - any package claim that `timeout()` is a correct, supported helper on those builders until the runtime defect is closed
-- Why: the package must not treat a helper as sound just because it forwards to the upstream method. A forwarded helper that deterministically emits broken query text is still a broken public package surface.
+  - package-exported CRUD/select/relate builder helpers named `timeout()`
+- Why: the upstream builder method deterministically emits broken query text on the exercised path. The binding now narrows the public contract instead of forwarding a helper that lies.
 
 ### `Surrealdb_Surreal.health` on `ws/rpc`
 
 - Upstream runtime currently observed:
   - `health()` over the exercised `ws://127.0.0.1:8787/rpc` path returns `Method not found`
 - ReScript representation:
-  - `Surrealdb_Surreal.health: t => promise<unit>`
-  - `Surrealdb_RpcEngine.health: t => promise<unit>`
+  - no public `health` helper is exposed on:
+    - `Surrealdb_Surreal`
+    - `Surrealdb_RpcEngine`
 - Strict supported subset:
-  - no successful `ws/rpc` health contract is currently proved
+  - no public `ws/rpc` health probe is claimed by this binding
 - Unsupported remainder:
-  - any package claim that `health()` is a supported readiness probe on the exercised `ws/rpc` path until runtime proof exists
-- Why: a public binding cannot call this a healthy supported surface while its own direct runtime probe only proves failure on the transport path the consumer actually uses.
+  - any binding-exported `health(): promise<unit>` surface on the exercised `ws/rpc` transport path
+- Why: the direct runtime probe only proves failure on the actual consumer transport path. The binding now narrows that claim away instead of exporting a healthy-looking method.
 
 ### `ApiPromise.stream()` and `value()`
 

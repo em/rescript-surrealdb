@@ -2,15 +2,20 @@
 
 ## Build Status
 
-**BUILD PASSING.**
+**BUILD PASSING. TEST GATE FAILING ON COVERAGE.**
 
-Verification run on 2026-04-23:
+Verification run on 2026-04-24:
 
 - `npm run build`
 - `npm test`
-- `npm pack --dry-run`
+  - all 9 Vitest files passed
+  - all 61 Vitest tests passed
+  - enforced global coverage gate still failed:
+    - 59.62% statements
+    - 55.1% functions
+    - 59.62% lines
 
-Build health is necessary and insufficient. The current soundness verdict also depends on direct boundary tests and the packed-artifact clean-consumer proof in `scripts/packedConsumerProof.mjs`.
+Build health is necessary and insufficient. The current soundness verdict also depends on direct boundary tests and direct runtime probes inside this repo.
 
 ## Inventory
 
@@ -43,7 +48,7 @@ No current public `%identity` site manufactures a more precise public type than 
 2. `.json()` mode is now explicit in the public type system.
    - `Query`, CRUD builders, `Auth`, and `ApiPromise` all change public format state at the type level.
 
-3. `ApiPromise` now models the real upstream state machine more honestly.
+3. `ApiPromise` now models the real upstream type-state more honestly.
    - response-envelope/body mode is separate from value/JSON mode
    - `stream()` remains envelope-only because the installed runtime does not expose a body-mode stream
 
@@ -55,9 +60,9 @@ No current public `%identity` site manufactures a more precise public type than 
    - compound ids use a recursive `component` algebra
    - unsupported nested leaves remain explicit through `option<idValue>`
 
-6. Public consumer proof no longer depends only on package-local cast helpers.
-   - `scripts/packedConsumerProof.mjs` installs the packed tarball into a clean ReScript consumer
-   - the consumer compiles and runs runtime checks against the published package surface
+6. Public boundary tests no longer depend only on package-local cast helpers.
+   - direct repo tests must exercise the public call shape itself
+   - package-local `%identity` helpers do not count as proof for the typed path
 
 ## Intentional Public Open Boundaries
 
@@ -86,12 +91,14 @@ No current public `%identity` site manufactures a more precise public type than 
 ## Coverage Status
 
 - direct tests now cover the builder output-domain redesign, explicit `.json()` state transitions, `RangeBound`, `RecordId.idValue`, `Jsonify`, API optional fields, `ApiPromise.then_`, and live message value classification
-- the packed-consumer proof covers:
-  - query/auth typed-path compilation
+- direct repo tests cover:
+  - query/auth typed-path behavior
   - `JsValue` typed input helpers
   - `RangeBound` supported constructor input
   - `RecordId.idValue` supported subset and unsupported remainder
   - `CborCodec` and `ValueCodec` decode boundaries
+  - narrowed timeout and `health` public contract
+  - explicit raw query-text `TIMEOUT` runtime behavior on the exercised server
 
 ## Residual Risk
 
@@ -99,11 +106,11 @@ No current public `%identity` site manufactures a more precise public type than 
 - event publisher callbacks remain flattened to `array<Surrealdb_Value.t>` because the payload tuple depends on the runtime event string
 - codec boundaries remain intentionally open at the foreign-data seam
 - `ApiPromise.then_` remains narrower than the full upstream Promise overload family
-- timeout helper surfaces are currently release-blocked because direct tests still prove broken `TIMEOUT TIMEOUT` SQL on exercised builders
-- `health()` is currently release-blocked on the exercised `ws/rpc` path because direct runtime proof still yields `Method not found`
+- timeout builder helpers are intentionally absent from the public binding surface until the upstream runtime defect is closed
+- `health()` is intentionally absent from the public `ws/rpc` binding surface until a supported runtime path exists
 
 ## Verdict
 
-The 2026-04-23 blocker line is no longer the full release verdict.
+The timeout and `health()` runtime-support blockers are closed by narrowing the public contract.
 
-Current remaining fidelity gaps are documented, but the package also has reopened runtime-support blockers in `docs/RELEASE_BLOCKERS.md`. A green build and green tests are not sufficient while those blockers remain open.
+The current release verdict is still not green because `npm test` fails the enforced global 80% coverage threshold. The remaining fidelity gaps above stay documented, and the package must not claim a passing release state until that test gate is satisfied.

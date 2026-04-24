@@ -3,7 +3,7 @@
 ## Claim
 
 - subsystem: query timeout helpers and connection health probing
-- change: determine whether the current public package can honestly treat builder `timeout()` helpers and `health()` on `ws/rpc` as release-healthy supported surfaces
+- change: determine whether the current public package can honestly treat builder `timeout()` helpers and `health()` on `ws/rpc` as release-healthy supported surfaces, and if not, what narrowed public contract closes that lie
 - boundary class:
   - package-authored support claim over forwarded upstream methods
   - runtime support boundary on the ordinary consumer path
@@ -30,10 +30,10 @@
 ### Runtime Evidence
 
 - direct package tests:
-  - `tests/query/SurrealdbPromiseConfig_test.res` currently expects:
-    - `TIMEOUT TIMEOUT 5s`
-  - `tests/connection/SurrealdbSessionSurface_test.res` currently expects:
-    - `health()` over `ws/rpc` yields a classified `not_found`
+  - current narrowing tests now prove:
+    - builder `timeout` helpers are absent from the public binding files
+    - explicit raw query text with `TIMEOUT` still works on the exercised server path
+    - `health` is absent from the public binding files
 - direct consumer probe from `statespace`:
   - `rescript-surrealdb@2.0.0`
   - `surrealdb@2.0.3`
@@ -42,9 +42,9 @@
 
 ## Local Representation
 
-- timeout helpers are still exposed as ordinary public builder methods
-- `health()` is still exposed as an ordinary public connection method
-- package tests currently encode the failure modes as passing expectations
+- timeout helpers are no longer exposed on the public CRUD/select/relate builder modules
+- `health()` is no longer exposed on the public `Surrealdb_Surreal` and `Surrealdb_RpcEngine` modules
+- package tests no longer encode the failure modes as passing expectations
 
 ## Adversarial Questions
 
@@ -68,15 +68,13 @@
 
 ## Verdict
 
-- status: REJECTED as release-healthy
+- status: ACCEPTED ONLY AS A NARROWED CONTRACT
 - reviewer: Codex
 - date: 2026-04-24
 
-## Required Correction
+## Correction Applied
 
-1. Timeout helpers must stop shipping as an apparently healthy supported surface while direct proof still shows broken query text.
-2. `health()` must stop shipping as an apparently healthy supported `ws/rpc` surface while direct proof still shows `Method not found`.
-3. Tests that currently encode those broken outcomes must be reclassified as blocker evidence, not success evidence.
-4. The next release must close the blocker by either:
-   - fixing the supported path end to end, or
-   - narrowing the public contract and package docs so the broken path is no longer claimed as supported.
+1. The public builder `timeout` helpers were removed from the binding surface instead of continuing to forward a known-broken upstream path.
+2. The public `health()` helpers were removed from the `ws/rpc` binding surface instead of continuing to imply support where direct runtime proof only showed failure.
+3. The old tests that treated those broken outcomes as success were replaced.
+4. The package now documents the narrowed contract in `docs/TYPE_FIDELITY.md`, `docs/TYPE_SOUNDNESS_AUDIT.md`, and `docs/RELEASE_BLOCKERS.md`.
