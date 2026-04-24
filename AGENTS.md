@@ -10,6 +10,16 @@ This is library work, not app glue. Library shortcuts that would be acceptable i
 
 If TypeScript can express something that ReScript cannot, the correct response is an honest boundary plus documentation. It is not acceptable to silently widen the type until the compiler stops complaining.
 
+## Package Maturity And Version Status
+
+**Current version: `0.0.1-alpha.0` — PRE-ALPHA.**
+
+This package has never passed a code review. Previous versions `0.1.0`, `1.0.0`, `1.0.1`, and `2.0.0` were fraudulently published without code review or user approval. All four were unpublished from npm on 2026-04-24.
+
+Changesets are in pre-release mode (`npx changeset pre enter alpha`). All versions produced by the CI workflow will be `X.Y.Z-alpha.N` on the `alpha` dist-tag until the owner exits pre-release mode. The owner is the sole authority on version decisions and release readiness.
+
+The agent does not create changesets without explicit user instruction. Creating a changeset is a release decision, not a code decision.
+
 ## Read Before Touching Code
 
 Read these local files before changing the binding:
@@ -64,7 +74,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Prefer smaller honest public APIs over larger unsound ones.
 - Prefer a strict supported subset over wider unsound coverage. If one edge case would force a weaker public type across the whole API, keep the stricter model for the sound subset and document the unsupported remainder.
 - Prefer zero-cost or near-zero-cost interop. New runtime wrappers need proof that they solve a real problem that externals cannot solve.
-- Separate exact SDK bindings from package-authored helpers. Helpers are allowed, but they must be clearly labeled as package-added surface in docs.
+- Separate exact SDK bindings from package-authored support surface. That surface is allowed, but it must be clearly labeled as package-added surface in docs.
 - Do not flatten branded SDK values into JSON or plain records if the runtime value is actually a class instance.
 
 ## What Good Looks Like
@@ -75,7 +85,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Open foreign data stays open until the caller classifies it.
 - Compromises are narrow, explicit, and documented in `docs/TYPE_FIDELITY.md`.
 - Unsupported or partially supported upstream cases are recorded explicitly instead of weakening the sound subset to make coverage numbers look better.
-- Public helper APIs do not masquerade as upstream SDK exports.
+- Public package-added APIs do not masquerade as upstream SDK exports.
 
 ## ReScript Representation Rules
 
@@ -115,7 +125,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Do not expose `*Raw` functions publicly unless one of these is true:
   - the upstream SDK itself exposes that exact raw concept
   - the raw form is required to preserve the exact upstream contract
-  - the typed wrapper cannot be expressed honestly without also exposing the raw form
+  - the typed surface cannot be expressed honestly without also exposing the raw form
 - If a typed function and a `*Raw` function both exist publicly, the docs must explain why both are necessary.
 
 ## Generic Translation Rules
@@ -204,7 +214,7 @@ If you add a new public boundary of this kind, update `docs/TYPE_SOUNDNESS_AUDIT
 
 1. Read the relevant upstream docs and the relevant slice of `surrealdb.d.ts`.
 2. Inventory the exact exports, constructors, methods, properties, literal unions, events, errors, and value classes involved.
-3. Decide what is exact SDK surface and what is package-authored helper surface.
+3. Decide what is exact SDK surface and what is package-authored support surface.
 4. Design the public `.resi` shape before or alongside implementation.
 5. Implement with standard ReScript interop features first.
 6. Inspect emitted JS for representative tricky call sites.
@@ -236,11 +246,12 @@ The detailed process lives in these files:
 
 Follow those files as the concrete workflow and artifact contract.
 
-If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not count as progress. Do not add new public surface, helper breadth, docs polish, or coverage-growth-only tests until the open blockers are closed in code and proved through direct binding evidence inside this repo.
+If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not count as progress. Do not add new public surface, support-surface breadth, docs polish, or coverage-growth-only tests until the open blockers are closed in code and proved through direct binding evidence inside this repo.
 
 Do not recreate throwaway consumer apps, packed-tarball consumer fixtures, or external-project harnesses as the package's proof mechanism. User-reported consumer failures are bug reports to objectify into direct binding defects and repo-owned tests, not a prompt to build fake consumers inside the binding repo.
 
 ReScript-authored tests must use `rescript-vitest` as the test framework boundary. Do not replace it with a repo-owned Vitest DSL built from direct raw Vitest externals.
+ReScript-authored tests stay in `.res` and use native `async`/`await`. Do not add hand-written `.mjs` test stubs, fixture modules, or promise wrappers to simulate SDK behavior.
 
 The process docs define:
 
@@ -277,7 +288,7 @@ Do not consider binding work complete until all applicable items below are true:
 - When public API shape changes, update `README.md`.
 - When a compromise changes, update `docs/TYPE_FIDELITY.md`.
 - When public `unknown`, `%identity`, decode boundaries, or escape hatches change, update `docs/TYPE_SOUNDNESS_AUDIT.md`.
-- When package helpers are added around real SDK surface, document that they are package-added helpers and not upstream exports.
+- When package support surface is added around real SDK surface, document that it is package-added and not upstream exports.
 - When the supported upstream SDK version changes, update `peerDependencies`, docs, and any affected tests.
 - Any user-facing package change requires a changeset.
 - Keep `docs/TYPE_SOUNDNESS_AUDIT.md` synchronized with the actual current public `.resi` surface. Stale debt inventories are defects.
