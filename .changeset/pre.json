@@ -4,5 +4,7 @@
   "initialVersions": {
     "rescript-surrealdb": "0.0.1-alpha.0"
   },
-  "changesets": []
+  "changesets": [
+    "alpha-version-correction"
+  ]
 }
