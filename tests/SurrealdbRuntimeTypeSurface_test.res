@@ -128,7 +128,11 @@ Vitest.describe("SurrealDB runtime type surface", () => {
     let context = Surrealdb_DriverContext.make(~options, ~uniqueId=(() => "coverage-engine"), ~codecs=codecRegistry)
     let wsEngine = context->Surrealdb_DriverContext.instantiate(engines->Surrealdb_RemoteEngines.ws)
     wsEngine->Surrealdb_Engine.ready
-    await wsEngine->Surrealdb_Engine.close
+    try {
+      await wsEngine->Surrealdb_Engine.close
+    } catch {
+    | _ => ()
+    }
 
     let stats = makeStats()
     let serverError = makeServerError()

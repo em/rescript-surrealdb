@@ -83,6 +83,18 @@ npm publication is owned by `.github/workflows/release.yml`. Only GitHub Actions
 - `createGithubReleases` defaults to `true` — the action automatically creates GitHub Releases with git tags (e.g., `v0.0.1-alpha.1`) after a successful publish.
 - Local `npm publish`, `npm run release`, and `npm run version-packages` are forbidden. The agent never runs them outside GitHub Actions.
 
+## Post-Publish Verification (MANDATORY)
+
+After any push that includes changesets, the agent must verify the release pipeline completed correctly. Fire-and-forget is prohibited.
+
+1. Check CI status: `gh run list --repo em/rescript-surrealdb -L 3`
+2. If the Release workflow ran, verify it succeeded. If it failed, read the logs with `gh run view <id> --log-failed` and fix the cause.
+3. After a successful publish, verify the npm registry reflects the new version: `npm view rescript-surrealdb version dist-tags --json`
+4. Verify the GitHub Release was created with the correct tag: `gh release list --repo em/rescript-surrealdb -L 3`
+5. If any step shows a mismatch between what was expected and what happened, investigate and fix before moving on.
+
+The agent does not assume a push resulted in a publish. The agent checks.
+
 ## Auditability
 
 The peer dependency range, the Changeset entries, the git tags created by the release workflow, and the commit history together form the auditable record of version decisions. A later maintainer must be able to trace why any version bump happened and what upstream version it was verified against.
