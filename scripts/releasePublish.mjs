@@ -42,7 +42,16 @@ if (publishedVersion.status === 0) {
   }
 }
 
-const result = spawnSync(npmCommand, ["publish", "--access", "public", "--provenance"], {
+// Source: https://docs.npmjs.com/cli/v11/commands/npm-publish
+// npm requires --tag when publishing prerelease versions to avoid setting them as latest
+const version = packageJson.version
+const prereleaseMatch = version.match(/-([a-zA-Z]+)/)
+const publishArgs = ["publish", "--access", "public", "--provenance"]
+if (prereleaseMatch) {
+  publishArgs.push("--tag", prereleaseMatch[1])
+}
+
+const result = spawnSync(npmCommand, publishArgs, {
   stdio: "inherit",
 })
 
