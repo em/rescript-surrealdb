@@ -46,15 +46,15 @@
     "changeset": "changeset",
     "clean": "rescript clean",
     "db:start": "surreal start --user root --pass root --bind 127.0.0.1:8787 --log info --no-banner rocksdb://dv",
-    "release": "node ./scripts/releaseLocalRefusal.mjs",
-    "release:ci": "node ./scripts/releasePublish.mjs",
+    "release": "echo 'Local publishing disabled. GitHub Actions handles releases from main.' && exit 1",
+    "release:ci": "npm publish --access public --provenance --tag \"$(node -p \"require('./package.json').version.match(/-([a-z]+)/)?.[1] || 'latest'\"  )\"",
     "test": "npm run build && vitest run --config vitest.config.js --coverage",
     "test:unit": "npm run build && vitest run --config vitest.unit.config.js",
     "test:live": "npm run build && vitest run --config vitest.live.config.js",
     "test:watch": "vitest --config vitest.config.js",
     "test:unit:watch": "vitest --config vitest.unit.config.js",
     "test:live:watch": "vitest --config vitest.live.config.js",
-    "version-packages": "node ./scripts/versionPackages.mjs"
+    "version-packages": "changeset version && npm install --package-lock-only"
   },
   "dependencies": {
     "@rescript/runtime": "12.2.0",
