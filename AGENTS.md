@@ -16,9 +16,7 @@ If TypeScript can express something that ReScript cannot, the correct response i
 
 This package has never passed a code review. Previous versions `0.1.0`, `1.0.0`, `1.0.1`, and `2.0.0` were fraudulently published without code review or user approval. All four were unpublished from npm on 2026-04-24.
 
-Changesets are in pre-release mode (`npx changeset pre enter alpha`). All versions produced by the CI workflow will be `X.Y.Z-alpha.N` on the `alpha` dist-tag until the owner exits pre-release mode. The owner is the sole authority on version decisions and release readiness.
-
-The agent does not create changesets without explicit user instruction. Creating a changeset is a release decision, not a code decision.
+Changesets are in pre-release mode (`npx changeset pre enter alpha`). All versions produced by the CI workflow will be `X.Y.Z-alpha.N` on the `alpha` dist-tag until the owner exits pre-release mode. The owner is the sole authority on when to exit pre-release mode.
 
 ## Read Before Touching Code
 

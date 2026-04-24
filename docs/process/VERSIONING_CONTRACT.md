@@ -62,7 +62,7 @@ Every user-facing package change requires a Changeset entry.
 
 The Changeset type (major, minor, patch) must match the versioning rules above, not the subjective "size" of the change. A one-line soundness fix that changes a public type signature is a major bump. A hundred-line addition of new bindings is a minor bump.
 
-The agent does not create changesets without explicit owner instruction. Creating a changeset is a release decision, not a code decision.
+Agents create changesets as part of normal binding work. The changeset type (major, minor, patch) must match the versioning rules above.
 
 ## Changelog
 
@@ -78,9 +78,8 @@ The agent does not manually edit CHANGELOG.md. Either changesets generates it au
 
 npm publication is owned by `.github/workflows/release.yml`. Only GitHub Actions has the npm credentials through trusted publishing with provenance.
 
-- The workflow runs `npm run build` and `npm test` before the changesets publish step. If either fails, nothing publishes.
-- `changesets/action` creates a "Version packages" PR when pending changesets exist. Publishing happens after that PR is merged.
-- `createGithubReleases` defaults to `true` — the action automatically creates GitHub Releases with git tags (e.g., `v0.0.1-alpha.1`) after a successful publish.
+- The workflow runs build and unit tests before the publish step. If either fails, nothing publishes.
+- When pending changesets exist on main, the workflow runs `changeset version`, commits the version bump, tags the release, and publishes directly. No PRs are created.
 - Local `npm publish`, `npm run release`, and `npm run version-packages` are forbidden. The agent never runs them outside GitHub Actions.
 
 ## Post-Publish Verification (MANDATORY)
