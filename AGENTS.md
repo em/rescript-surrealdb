@@ -211,6 +211,14 @@ If you add a new public boundary of this kind, update `docs/TYPE_SOUNDNESS_AUDIT
 7. Add or update tests for public shape and runtime behavior.
 8. Update docs for fidelity gaps and soundness boundaries.
 
+## ReScript Build Integrity
+
+- `.res` and `.resi` files are the source of truth.
+- Tracked `.mjs` files are generated output only.
+- Never hand-edit generated `.mjs` files.
+- Do not use `rescript watch` as the agent workflow.
+- After each change, run the repo build command and read the actual build result.
+
 ## Process Authority
 
 The detailed process lives in these files:

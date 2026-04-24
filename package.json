@@ -42,6 +42,7 @@
   },
   "scripts": {
     "build": "node ./scripts/rescriptBuild.mjs",
+    "verify:generated": "npm run build && git diff --exit-code -- ':(glob)src/**/*.mjs' ':(glob)tests/**/*.mjs'",
     "changeset": "changeset",
     "clean": "rescript clean",
     "db:start": "surreal start --user root --pass root --bind 127.0.0.1:8787 --log info --no-banner rocksdb://dv",
