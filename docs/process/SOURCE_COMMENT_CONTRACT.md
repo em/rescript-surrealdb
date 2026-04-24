@@ -19,7 +19,7 @@ Add or update source comments when touching:
 - public `*Raw` APIs
 - generic boundaries where TypeScript expressivity exceeds ReScript expressivity
 - runtime classification code
-- helper APIs that are not direct upstream exports
+- package-authored APIs that are not direct upstream exports
 
 ## Required Comment Shapes
 
@@ -58,7 +58,7 @@ A good source comment answers at least one of these:
 - why this is `unknown` instead of a closed type
 - why this `%identity` is safe
 - why this `*Raw` API remains public
-- why this wrapper exists even though the repo prefers thin bindings
+- why this package-authored API exists even though the repo prefers thin bindings
 - what direct test is supposed to fail if this boundary becomes dishonest
 
 ## What Comments Must Not Do

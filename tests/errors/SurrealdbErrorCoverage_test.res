@@ -75,6 +75,9 @@ let objectField = (entries, key) =>
   | None => None
   }
 
+let jsonObject = value =>
+  value->JSON.Decode.object->Option.getOr(Dict.make())
+
 Vitest.describe("SurrealDB error hierarchy coverage", () => {
   Vitest.test("client error subclasses classify and serialize through the public surface", t => {
     let buffer = makeArrayBuffer(4)
@@ -164,8 +167,7 @@ Vitest.describe("SurrealDB error hierarchy coverage", () => {
     let payload =
       unavailableFeature
       ->Surrealdb_ClientError.toJSON
-      ->JSON.Decode.object
-      ->Option.getOr(Dict.make())
+      ->jsonObject
     t->Vitest.expect((
       payload->stringField("sdkClass"),
       payload->stringField("version"),
@@ -175,6 +177,62 @@ Vitest.describe("SurrealDB error hierarchy coverage", () => {
       Some("2.3.1"),
       Some("live-queries"),
     ))
+
+    let clientJsonSummaries = [
+      makeCallTerminatedError(),
+      makeReconnectExhaustionError(),
+      makeReconnectIterationError(),
+      makeUnsupportedEngineError("ftp"),
+      makeConnectionUnavailableError(),
+      makeMissingNamespaceDatabaseError(),
+      makeHttpConnectionError("failed", 503, "unavailable", buffer),
+      makeAuthenticationError(stringToUnknown("bad token")),
+      makeLiveSubscriptionError("offline"),
+      makeUnsupportedVersionError("2.0.0", "2.1.0", "4.0.0"),
+      makeExpressionError("bad expression"),
+      makeInvalidDateError("invalid date"),
+      makeInvalidRecordIdError(),
+      makeInvalidDurationError(),
+      makeInvalidDecimalError(),
+      makeInvalidTableError(),
+      unavailableFeature,
+      invalidSession,
+      unsuccessfulApi,
+    ]
+    ->Array.map(error => {
+        let payload = error->Surrealdb_ClientError.toJSON->jsonObject
+        (
+          payload->stringField("sdkClass"),
+          payload->stringField("engine"),
+          payload->jsonFieldText("status"),
+          payload->jsonFieldText("bufferByteLength"),
+          payload->stringField("version"),
+          payload->jsonFieldText("session"),
+          payload->stringField("path"),
+        )
+      })
+
+    t->Vitest.expect(clientJsonSummaries)->Vitest.Expect.toEqual([
+      (Some("CallTerminatedError"), None, None, None, None, None, None),
+      (Some("ReconnectExhaustionError"), None, None, None, None, None, None),
+      (Some("ReconnectIterationError"), None, None, None, None, None, None),
+      (Some("UnsupportedEngineError"), Some("ftp"), None, None, None, None, None),
+      (Some("ConnectionUnavailableError"), None, None, None, None, None, None),
+      (Some("MissingNamespaceDatabaseError"), None, None, None, None, None, None),
+      (Some("HttpConnectionError"), None, Some("503"), Some("4"), None, None, None),
+      (Some("AuthenticationError"), None, None, None, None, None, None),
+      (Some("LiveSubscriptionError"), None, None, None, None, None, None),
+      (Some("UnsupportedVersionError"), None, None, None, Some("2.0.0"), None, None),
+      (Some("ExpressionError"), None, None, None, None, None, None),
+      (Some("InvalidDateError"), None, None, None, None, None, None),
+      (Some("InvalidRecordIdError"), None, None, None, None, None, None),
+      (Some("InvalidDurationError"), None, None, None, None, None, None),
+      (Some("InvalidDecimalError"), None, None, None, None, None, None),
+      (Some("InvalidTableError"), None, None, None, None, None, None),
+      (Some("UnavailableFeatureError"), None, None, None, Some("2.3.1"), None, None),
+      (Some("InvalidSessionError"), None, None, None, None, Some("\"018cc251-4f5c-7def-b4c6-000000000001\""), None),
+      (Some("UnsuccessfulApiError"), None, None, None, None, None, Some("/api/widgets")),
+    ])
   })
 
   Vitest.test("server error detail branches classify and serialize through the public surface", t => {
@@ -280,8 +338,7 @@ Vitest.describe("SurrealDB error hierarchy coverage", () => {
     let payload =
       timedOut
       ->Surrealdb_ServerError.toJSON
-      ->JSON.Decode.object
-      ->Option.getOr(Dict.make())
+      ->jsonObject
     let timeoutObject = payload->objectField("timeout")->Option.getOr(Dict.make())
     t->Vitest.expect((
       payload->stringField("sdkClass"),
@@ -294,5 +351,175 @@ Vitest.describe("SurrealDB error hierarchy coverage", () => {
       Some("1"),
       Some("2"),
     ))
+
+    let parseError =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="parse failure",
+        ~kind=Surrealdb_ErrorKind.validation,
+        ~details=makeDetail(~kind="Parse", ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let parameterError =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="invalid namespace",
+        ~kind=Surrealdb_ErrorKind.validation,
+        ~details=makeDetail(
+          ~kind="InvalidParameter",
+          ~details=Dict.fromArray([("name", stringToUnknown("namespace"))]),
+          (),
+        ),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let thrown =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="explicit throw",
+        ~kind=Surrealdb_ErrorKind.thrown,
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let notExecuted =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="not executed",
+        ~kind=Surrealdb_ErrorKind.query,
+        ~details=makeDetail(~kind="NotExecuted", ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let cancelled =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="cancelled",
+        ~kind=Surrealdb_ErrorKind.query,
+        ~details=makeDetail(~kind="Cancelled", ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let invalidAuth =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="invalid auth",
+        ~kind=Surrealdb_ErrorKind.notAllowed,
+        ~details=makeDetail(~kind="InvalidAuth", ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let scriptingBlocked =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="scripting blocked",
+        ~kind=Surrealdb_ErrorKind.notAllowed,
+        ~details=makeDetail(
+          ~kind="Function",
+          ~details=Dict.fromArray([("name", stringToUnknown("script::run"))]),
+          (),
+        ),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let missingRecord =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="record missing",
+        ~kind=Surrealdb_ErrorKind.notFound,
+        ~details=makeDetail(~kind="Record", ~details=Dict.fromArray([("id", stringToUnknown("widgets:alpha"))]), ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let missingMethod =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="method missing",
+        ~kind=Surrealdb_ErrorKind.notFound,
+        ~details=makeDetail(~kind="Method", ~details=Dict.fromArray([("name", stringToUnknown("health"))]), ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let missingNamespace =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="namespace missing",
+        ~kind=Surrealdb_ErrorKind.notFound,
+        ~details=makeDetail(~kind="Namespace", ~details=Dict.fromArray([("name", stringToUnknown("app"))]), ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let missingDatabase =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="database missing",
+        ~kind=Surrealdb_ErrorKind.notFound,
+        ~details=makeDetail(~kind="Database", ~details=Dict.fromArray([("name", stringToUnknown("main"))]), ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+    let duplicateTable =
+      Surrealdb_ServerError.makeRpcErrorObject(
+        ~code=(-32000),
+        ~message="table exists",
+        ~kind=Surrealdb_ErrorKind.alreadyExists,
+        ~details=makeDetail(~kind="Table", ~details=Dict.fromArray([("name", stringToUnknown("widgets"))]), ()),
+        (),
+      )->Surrealdb_ServerError.parseRpcError
+
+    let serverJsonSummaries = [
+      parseError,
+      parameterError,
+      configuration,
+      thrown,
+      notExecuted,
+      timedOut,
+      cancelled,
+      serialization,
+      methodError,
+      invalidAuth,
+      scriptingBlocked,
+      notFoundTable,
+      missingRecord,
+      missingMethod,
+      missingNamespace,
+      missingDatabase,
+      duplicateRecord,
+      duplicateTable,
+      caused,
+    ]
+    ->Array.map(error => {
+        let payload = error->Surrealdb_ServerError.toJSON->jsonObject
+        (
+          payload->stringField("sdkClass"),
+          payload->stringField("kind"),
+          payload->boolField("isParseError"),
+          payload->stringField("parameterName"),
+          payload->boolField("isLiveQueryNotSupported"),
+          payload->boolField("isNotExecuted"),
+          payload->boolField("isTimedOut"),
+          payload->boolField("isCancelled"),
+          payload->boolField("isDeserialization"),
+          payload->boolField("isInvalidAuth"),
+          payload->boolField("isScriptingBlocked"),
+          payload->stringField("functionName"),
+          payload->stringField("tableName"),
+          payload->stringField("recordId"),
+          payload->stringField("methodName"),
+          payload->stringField("namespaceName"),
+          payload->stringField("databaseName"),
+        )
+      })
+
+    t->Vitest.expect(serverJsonSummaries)->Vitest.Expect.toEqual([
+      (Some("ValidationError"), Some("Validation"), Some(true), None, None, None, None, None, None, None, None, None, None, None, None, None, None),
+      (Some("ValidationError"), Some("Validation"), Some(false), Some("namespace"), None, None, None, None, None, None, None, None, None, None, None, None, None),
+      (Some("ConfigurationError"), Some("Configuration"), None, None, Some(true), None, None, None, None, None, None, None, None, None, None, None, None),
+      (Some("ThrownError"), Some("Thrown"), None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),
+      (Some("QueryError"), Some("Query"), None, None, None, Some(true), Some(false), Some(false), None, None, None, None, None, None, None, None, None),
+      (Some("QueryError"), Some("Query"), None, None, None, Some(false), Some(true), Some(false), None, None, None, None, None, None, None, None, None),
+      (Some("QueryError"), Some("Query"), None, None, None, Some(false), Some(false), Some(true), None, None, None, None, None, None, None, None, None),
+      (Some("SerializationError"), Some("Serialization"), None, None, None, None, None, None, Some(true), None, None, None, None, None, None, None, None),
+      (Some("NotAllowedError"), Some("NotAllowed"), None, None, None, None, None, None, None, Some(false), Some(false), None, None, None, Some("kill"), None, None),
+      (Some("NotAllowedError"), Some("NotAllowed"), None, None, None, None, None, None, None, Some(false), Some(false), None, None, None, None, None, None),
+      (Some("NotAllowedError"), Some("NotAllowed"), None, None, None, None, None, None, None, Some(false), Some(false), Some("script::run"), None, None, None, None, None),
+      (Some("NotFoundError"), Some("NotFound"), None, None, None, None, None, None, None, None, None, None, Some("widgets"), None, None, None, None),
+      (Some("NotFoundError"), Some("NotFound"), None, None, None, None, None, None, None, None, None, None, None, Some("widgets:alpha"), None, None, None),
+      (Some("NotFoundError"), Some("NotFound"), None, None, None, None, None, None, None, None, None, None, None, None, Some("health"), None, None),
+      (Some("NotFoundError"), Some("NotFound"), None, None, None, None, None, None, None, None, None, None, None, None, None, Some("app"), None),
+      (Some("NotFoundError"), Some("NotFound"), None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some("main")),
+      (Some("AlreadyExistsError"), Some("AlreadyExists"), None, None, None, None, None, None, None, None, None, None, None, Some("widgets:alpha"), None, None, None),
+      (Some("AlreadyExistsError"), Some("AlreadyExists"), None, None, None, None, None, None, None, None, None, None, Some("widgets"), None, None, None, None),
+      (Some("InternalError"), Some("Internal"), None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),
+    ])
   })
 })

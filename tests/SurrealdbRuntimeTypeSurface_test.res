@@ -13,8 +13,8 @@ let makeRawDoneFrame = Support.makeRawDoneFrame
 let makeServerError = Support.makeServerError
 let toUnknown = SurrealdbTestCasts.toUnknown
 
-Vitest.describe("SurrealDB wrapper surface", () => {
-  Vitest.test("plain-object response, token, stats, query-response, and js-value wrappers stay honest", t => {
+Vitest.describe("SurrealDB runtime type surface", () => {
+  Vitest.test("plain-object response, token, stats, query-response, and js-value surfaces stay honest", t => {
     let tokens = Surrealdb_Tokens.make(~access="access-token", ~refresh="refresh-token", ())
     let apiResponse =
       makeRawApiResponse(
@@ -112,7 +112,7 @@ Vitest.describe("SurrealDB wrapper surface", () => {
     ))
   })
 
-  Vitest.testAsync("feature, engine, frame, query-frame, and json-frame wrappers stay executable", async t => {
+  Vitest.testAsync("feature, engine, frame, query-frame, and json-frame surfaces stay executable", async t => {
     let engines = Surrealdb_RemoteEngines.create()
     let codecFactories = Dict.fromArray([("cbor", Surrealdb_ValueCodec.cborFactory)])
     let codecRegistry =

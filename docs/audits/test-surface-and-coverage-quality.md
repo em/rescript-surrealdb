@@ -11,8 +11,8 @@ This audit reviews whether the current `rescript-surrealdb` tests actually exerc
 It focuses on:
 
 - real runtime proof versus internal reconstruction
-- tautological runtime-class and helper tests
-- package-local `%identity` and `unknown` helpers in tests
+- tautological runtime-class and package-API tests
+- package-local `%identity` and `unknown` cast functions in tests
 - whether the current coverage gate is strong enough to catch public-surface fraud
 
 ## Current Workspace State
@@ -29,8 +29,8 @@ So this audit reviews test quality from the current test sources plus the last k
 ## Inventory
 
 - test files: `9`
-- helper-cast test files: `6`
-- helper-cast hits: `158`
+- cast-function test files: `6`
+- cast-function hits: `158`
 - integration-style files touching live server behavior: `5`
 - global coverage threshold in `vitest.config.js`: `50` for statements, branches, functions, and lines
 
@@ -92,7 +92,7 @@ These tests use:
 - `floatToUnknown`
 - `nullableToUnknown`
 
-These helpers are acceptable when testing intentionally open classifier seams. They are not acceptable as the main proof that ordinary typed consumers can use the public API directly.
+These cast functions are acceptable when testing intentionally open classifier seams. They are not acceptable as the main proof that ordinary typed consumers can use the public API directly.
 
 ### `RangeBound` consumer friction was not caught by the suite
 
@@ -102,7 +102,7 @@ The external consumer review showed that a normal external consumer could not ca
 
 without dropping to `unknown`.
 
-The internal suite still passed because it drove that boundary through local `%identity` helpers:
+The internal suite still passed because it drove that boundary through local `%identity` cast functions:
 
 - `tests/query/SurrealdbPublicSurface_test.res`
 - `tests/value/SurrealdbValueSurface_test.res`
@@ -160,7 +160,7 @@ For this package, a green global threshold can still coexist with:
 - weak promise-builder fidelity
 - `.json()` state erasure
 - consumer friction on open boundaries
-- raw helper casts standing in for consumer proof
+- raw cast functions standing in for consumer proof
 
 ## Representative Classification
 
@@ -174,7 +174,7 @@ For this package, a green global threshold can still coexist with:
 
 - `tests/query/SurrealdbPublicSurface_test.res` where it reaches open boundaries through `%identity`
 - `tests/value/SurrealdbValueSurface_test.res` where it reconstructs boundary inputs through local casts
-- classifier tests that inspect raw/open boundaries only through local helper casts
+- classifier tests that inspect raw/open boundaries only through local cast functions
 
 ### Proof that is still missing
 
@@ -186,7 +186,7 @@ For this package, a green global threshold can still coexist with:
 
 This suite is stronger than the MCP suite because it has real server-backed runtime tests and better direct boundary tests.
 
-It is still not at the level expected from a strong industrial binding package, because it still lets package-local helper casts and global coverage numbers overstate the quality of public consumer proof.
+It is still not at the level expected from a strong industrial binding package, because it still lets package-local cast functions and global coverage numbers overstate the quality of public consumer proof.
 
 ## Required Correction
 
@@ -209,9 +209,9 @@ The package must add tests and consumer proofs for:
 - `.json()` state transitions
 - the public promise-builder path after the redesign
 
-### 3. Stop treating helper-cast tests as consumer proof
+### 3. Stop treating local cast-function tests as consumer proof
 
-If a test uses package-local `%identity` or `*ToUnknown` helpers, it must be classified as:
+If a test uses package-local `%identity` or `*ToUnknown` cast functions, it must be classified as:
 
 - open-boundary proof
 - internal reconstruction proof

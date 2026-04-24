@@ -13,7 +13,7 @@ Run this process for any change that does one or more of these:
 - changes a public `.resi`
 - adds or changes `unknown`, `%identity`, `Obj.magic`, `%raw`, `@unboxed`, `@tag`, or `*Raw`
 - changes a public generic, nullish boundary, error surface, or runtime class binding
-- changes helper-vs-upstream surface classification
+- changes package-support-vs-upstream surface classification
 - changes supported upstream package version
 
 ## Artifact Map
@@ -62,13 +62,13 @@ These roles may be performed by different agents or by the same maintainer in se
 ### 1. Scope The Change
 
 - identify the exact upstream exports and declarations involved
-- identify whether the surface is exact upstream surface or package-authored helper surface
+- identify whether the surface is exact upstream surface or package-authored support surface
 - identify the relevant boundary class:
   - exact binding
   - foreign input
   - foreign output
   - runtime classifier
-  - helper surface
+  - package-added support surface
 
 ### 2. Gather Upstream Evidence
 
@@ -112,7 +112,7 @@ Before accepting any open or lossy boundary, prove what the strongest honest pub
 - run `npm run build`
 - run `npm test` when binding code changed
 - run `npm pack --dry-run` for release-facing work
-- for any change that affects a public boundary or package-authored helper surface, add or update direct repo-owned tests that exercise the public binding surface itself
+- for any change that affects a public boundary or package-authored support surface, add or update direct repo-owned tests that exercise the public binding surface itself
 - when a public claim depends on compile-time rejection, express that through repo-owned type-shape test modules or compile-step fixtures inside this repo, not by recreating throwaway consumer apps
 - ReScript-authored Vitest tests must be expressed through `rescript-vitest`, not a repo-owned replacement test DSL built from direct raw Vitest externals
 - inspect emitted JS for representative tricky externals when claiming low-level or zero-cost interop
@@ -120,7 +120,7 @@ Before accepting any open or lossy boundary, prove what the strongest honest pub
 
 Known-broken runtime behavior must never be counted as release-closing evidence just because a test reproduces it.
 
-- if a public helper or public runtime call deterministically fails or emits broken output on a supported path, a passing regression test that encodes that failure is evidence for an open blocker, not evidence that the surface is healthy
+- if a public package-added surface or public runtime call deterministically fails or emits broken output on a supported path, a passing regression test that encodes that failure is evidence for an open blocker, not evidence that the surface is healthy
 - when the package intentionally keeps such a surface public temporarily, `docs/RELEASE_BLOCKERS.md`, `docs/TYPE_FIDELITY.md`, and the relevant audit must all say so explicitly
 - release-closing proof requires either:
   - a working direct runtime demonstration on the supported path, or
@@ -140,7 +140,7 @@ It must ask questions like:
 - are null, undefined, and omission separated correctly
 - is the public `*Raw` API actually justified
 - is this `%identity` a proved representational equality
-- does the typed wrapper preserve upstream semantics
+- does the typed surface preserve upstream semantics
 - could the API be split into narrower truthful pieces
 - does the current documentation match the actual current public surface
 
@@ -160,7 +160,7 @@ Before considering the work complete, verify:
 - `docs/TYPE_FIDELITY.md` and `docs/TYPE_SOUNDNESS_AUDIT.md` are current
 - every accepted `unknown`, JSON projection, or `%identity` site has a written reason why tighter modeling or real polymorphism was not truthful
 - every unsupported upstream case is named explicitly, together with the stricter supported subset the package chose instead of widening the full surface
-- any affected public boundary or helper surface has current direct test evidence recorded in the audit trail
+- any affected public boundary or package-added support surface has current direct test evidence recorded in the audit trail
 - `README.md`, `.changeset/README.md`, `package.json`, and `.github/workflows/release.yml` agree on the release path
 - the repository does not imply local `npm publish` as part of the maintainer workflow
 - release publication is delegated to the repo's GitHub Actions workflow, not a local shell

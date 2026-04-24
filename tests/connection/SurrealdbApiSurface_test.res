@@ -1,4 +1,5 @@
 module Support = SurrealdbSessionTestSupport
+module CoverageSupport = SurrealdbCoverageTestSupport
 
 let closeIgnore = Support.closeIgnore
 let connectServerDatabase = Support.connectServerDatabase
@@ -6,6 +7,7 @@ let compiledApiRequestFieldText = Support.compiledApiRequestFieldText
 let compiledApiRequestFieldJson = Support.compiledApiRequestFieldJson
 let makeRawApiResponse = Support.makeRawApiResponse
 let removeTableIgnore = Support.removeTableIgnore
+let makeDisconnectedDb = CoverageSupport.makeDisconnectedDb
 let toUnknown = SurrealdbTestCasts.toUnknown
 
 Vitest.describe("SurrealDB API surface", () => {
@@ -142,6 +144,173 @@ Vitest.describe("SurrealDB API surface", () => {
     } catch {
     | error =>
       await removeTableIgnore(db, tableName)
+      await closeIgnore(db)
+      throw(error)
+    }
+  })
+
+  Vitest.testAsync("api request builders and promise modifiers stay explicit on the public surface", async t => {
+    let db = Surrealdb_Surreal.make()
+    try {
+      await connectServerDatabase(db)
+
+      let api = db->Surrealdb_Surreal.asQueryable->Surrealdb_Api.fromQueryableWithPrefix("/root")
+      api->Surrealdb_Api.setHeader("x-default", "a")
+      let compiledGet =
+        api
+        ->Surrealdb_Api.get_("/widgets")
+        ->Surrealdb_ApiPromise.header("x-one", "1")
+        ->Surrealdb_ApiPromise.query("page", "2")
+        ->Surrealdb_ApiPromise.value
+        ->Surrealdb_ApiPromise.compile
+      api->Surrealdb_Api.clearHeader("x-default")
+      let compiledInvoke =
+        api
+        ->Surrealdb_Api.invoke(
+            "/widgets",
+            ~method=Surrealdb_Api.Post,
+            ~body=JSON.parseOrThrow("{\"title\":\"alpha\"}")->Surrealdb_JsValue.json,
+            ~headers=Dict.fromArray([("x-test", "1")]),
+            ~query=Dict.fromArray([("page", "2")]),
+            (),
+          )
+        ->Surrealdb_ApiPromise.json
+        ->Surrealdb_ApiPromise.compile
+      let compiledDelete = api->Surrealdb_Api.delete_("/widgets", ())->Surrealdb_ApiPromise.compile
+      let compiledPatch =
+        api
+        ->Surrealdb_Api.patch(
+            "/widgets",
+            ~body=JSON.parseOrThrow("{\"title\":\"beta\"}")->Surrealdb_JsValue.json,
+            (),
+          )
+        ->Surrealdb_ApiPromise.compile
+      let compiledTrace = api->Surrealdb_Api.trace("/widgets", ())->Surrealdb_ApiPromise.compile
+
+      t->Vitest.expect((
+        compiledGet->compiledApiRequestFieldText("method"),
+        compiledGet->compiledApiRequestFieldJson("headers"),
+        compiledGet->compiledApiRequestFieldJson("query"),
+        compiledInvoke->compiledApiRequestFieldText("method"),
+        compiledInvoke->compiledApiRequestFieldJson("headers"),
+        compiledInvoke->compiledApiRequestFieldJson("query"),
+        compiledInvoke->compiledApiRequestFieldJson("body"),
+        compiledDelete->compiledApiRequestFieldText("method"),
+        compiledPatch->compiledApiRequestFieldText("method"),
+        compiledTrace->compiledApiRequestFieldText("method"),
+      ))->Vitest.Expect.toEqual((
+        Some("get"),
+        Some("{\"x-default\":\"a\",\"x-one\":\"1\"}"),
+        Some("{\"page\":\"2\"}"),
+        Some("post"),
+        Some("{\"x-test\":\"1\"}"),
+        Some("{\"page\":\"2\"}"),
+        Some("{\"title\":\"alpha\"}"),
+        Some("delete"),
+        Some("patch"),
+        Some("trace"),
+      ))
+
+      await closeIgnore(db)
+    } catch {
+    | error =>
+      await closeIgnore(db)
+      throw(error)
+    }
+  })
+
+  Vitest.testAsync("api request builders cover the raw method and body variants on the public surface", async t => {
+    let db = Surrealdb_Surreal.make()
+    try {
+      await connectServerDatabase(db)
+
+      let api = db->Surrealdb_Surreal.asQueryable->Surrealdb_Api.fromQueryableWithPrefix("/root")
+      let request =
+        Surrealdb_Api.makeRequest(
+          ~method=Surrealdb_Api.Put,
+          ~body=JSON.parseOrThrow("{\"title\":\"alpha\"}")->Surrealdb_JsValue.json,
+          ~headers=Dict.fromArray([("x-test", "1")]),
+          ~query=Dict.fromArray([("page", "2")]),
+          (),
+        )
+      let compiledInvokePath = api->Surrealdb_Api.invokePath("/widgets")->Surrealdb_ApiPromise.compile
+      let compiledInvokeRaw = api->Surrealdb_Api.invokeRaw("/widgets", request)->Surrealdb_ApiPromise.compile
+      let compiledGet = api->Surrealdb_Api.get_("/widgets")->Surrealdb_ApiPromise.compile
+      let compiledPost = api->Surrealdb_Api.post_("/widgets")->Surrealdb_ApiPromise.compile
+      let compiledPostRaw =
+        api
+        ->Surrealdb_Api.postRaw("/widgets", JSON.parseOrThrow("{\"title\":\"beta\"}")->Surrealdb_JsValue.json)
+        ->Surrealdb_ApiPromise.compile
+      let compiledPut = api->Surrealdb_Api.put_("/widgets")->Surrealdb_ApiPromise.compile
+      let compiledPutRaw =
+        api
+        ->Surrealdb_Api.putRaw("/widgets", JSON.parseOrThrow("{\"title\":\"gamma\"}")->Surrealdb_JsValue.json)
+        ->Surrealdb_ApiPromise.compile
+      let compiledDelete = api->Surrealdb_Api.delete_("/widgets", ())->Surrealdb_ApiPromise.compile
+      let compiledDeleteRaw =
+        api
+        ->Surrealdb_Api.deleteRaw("/widgets", JSON.parseOrThrow("{\"title\":\"delta\"}")->Surrealdb_JsValue.json)
+        ->Surrealdb_ApiPromise.compile
+      let compiledPatch = api->Surrealdb_Api.patch("/widgets", ())->Surrealdb_ApiPromise.compile
+      let compiledPatchRaw =
+        api
+        ->Surrealdb_Api.patchRaw("/widgets", JSON.parseOrThrow("{\"title\":\"epsilon\"}")->Surrealdb_JsValue.json)
+        ->Surrealdb_ApiPromise.compile
+      let compiledTrace = api->Surrealdb_Api.trace("/widgets", ())->Surrealdb_ApiPromise.compile
+      let compiledTraceRaw =
+        api
+        ->Surrealdb_Api.traceRaw("/widgets", JSON.parseOrThrow("{\"title\":\"zeta\"}")->Surrealdb_JsValue.json)
+        ->Surrealdb_ApiPromise.compile
+
+      t->Vitest.expect((
+        compiledInvokePath->compiledApiRequestFieldText("method"),
+        compiledInvokeRaw->compiledApiRequestFieldText("method"),
+        compiledInvokeRaw->compiledApiRequestFieldJson("body"),
+        compiledInvokeRaw->compiledApiRequestFieldJson("headers"),
+        compiledInvokeRaw->compiledApiRequestFieldJson("query"),
+        compiledGet->compiledApiRequestFieldText("method"),
+        compiledPost->compiledApiRequestFieldText("method"),
+        compiledPostRaw->compiledApiRequestFieldText("method"),
+        compiledPostRaw->compiledApiRequestFieldJson("body"),
+        compiledPut->compiledApiRequestFieldText("method"),
+        compiledPutRaw->compiledApiRequestFieldText("method"),
+        compiledPutRaw->compiledApiRequestFieldJson("body"),
+        compiledDelete->compiledApiRequestFieldText("method"),
+        compiledDeleteRaw->compiledApiRequestFieldText("method"),
+        compiledDeleteRaw->compiledApiRequestFieldJson("body"),
+        compiledPatch->compiledApiRequestFieldText("method"),
+        compiledPatchRaw->compiledApiRequestFieldText("method"),
+        compiledPatchRaw->compiledApiRequestFieldJson("body"),
+        compiledTrace->compiledApiRequestFieldText("method"),
+        compiledTraceRaw->compiledApiRequestFieldText("method"),
+        compiledTraceRaw->compiledApiRequestFieldJson("body"),
+      ))->Vitest.Expect.toEqual((
+        Some("get"),
+        Some("put"),
+        Some("{\"title\":\"alpha\"}"),
+        Some("{\"x-test\":\"1\"}"),
+        Some("{\"page\":\"2\"}"),
+        Some("get"),
+        Some("post"),
+        Some("post"),
+        Some("{\"title\":\"beta\"}"),
+        Some("put"),
+        Some("put"),
+        Some("{\"title\":\"gamma\"}"),
+        Some("delete"),
+        Some("delete"),
+        Some("{\"title\":\"delta\"}"),
+        Some("patch"),
+        Some("patch"),
+        Some("{\"title\":\"epsilon\"}"),
+        Some("trace"),
+        Some("trace"),
+        Some("{\"title\":\"zeta\"}"),
+      ))
+
+      await closeIgnore(db)
+    } catch {
+    | error =>
       await closeIgnore(db)
       throw(error)
     }

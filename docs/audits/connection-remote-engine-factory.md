@@ -4,7 +4,7 @@
 
 - subsystem: connection
 - change: break the `DriverContext -> DriverOptions -> RemoteEngines` cycle by keeping remote engine factories opaque and invoking them through `Surrealdb_DriverContext.instantiate`
-- boundary class: package-authored helper surface around an upstream function-valued record
+- boundary class: package-authored API surface around an upstream function-valued record
 - exact public surface affected:
   - `src/connection/Surrealdb_DriverContext.resi`
   - `src/connection/Surrealdb_RemoteEngines.resi`
@@ -35,7 +35,7 @@
 ### Runtime Evidence
 
 - command or probe: `sed -n '1,120p' src/connection/Surrealdb_DriverContext.mjs` and `sed -n '1,120p' src/connection/Surrealdb_RemoteEngines.mjs`
-- result: emitted JS shows `instantiate(context, factory) { return callEngineFactory(context, factory); }` and `applyDiagnostics(engines, listener) { return Surrealdb.applyDiagnostics(engines, event => listener(Surrealdb_Value.fromUnknown(event))); }`, so the helper is a direct call-through and diagnostics still classify SDK events at the boundary.
+- result: emitted JS shows `instantiate(context, factory) { return callEngineFactory(context, factory); }` and `applyDiagnostics(engines, listener) { return Surrealdb.applyDiagnostics(engines, event => listener(Surrealdb_Value.fromUnknown(event))); }`, so the package API is a direct call-through and diagnostics still classify SDK events at the boundary.
 
 ## Local Representation
 
@@ -73,9 +73,9 @@
 - evidence-based answer: the SDK surface is a dynamic string-keyed object and ReScript module dependencies would still cycle through `DriverOptions`. Keeping factory values opaque preserves the JS record shape without reopening the cycle.
 
 - question: does moving invocation to `DriverContext.instantiate` invent a false upstream API
-- evidence-based answer: yes, it is a package helper, and it is documented as package-added in `docs/TYPE_FIDELITY.md`. The helper only performs the direct `factory(context)` call shown in emitted JS.
+- evidence-based answer: yes, it is a package-added API, and it is documented as package-added in `docs/TYPE_FIDELITY.md`. The API only performs the direct `factory(context)` call shown in emitted JS.
 
-- question: could the helper break diagnostics behavior by changing the wrapped engine object
+- question: could the package API break diagnostics behavior by changing the wrapped engine object
 - evidence-based answer: no. `Surrealdb_RemoteEngines.applyDiagnostics` still delegates to the upstream `applyDiagnostics(engines, callback)` on the same engines record, and the direct connection test now observes the expected `open`, `version`, `use`, and `signin` phase events.
 
 ## Failure Modes Targeted
@@ -88,8 +88,8 @@
 - how the current design prevents or exposes it: `Surrealdb_DriverContext.instantiate` is the only public invocation site and it accepts the concrete `DriverContext.t`
 - test or probe covering it: `tests/query/SurrealdbPublicSurface_test.res`
 
-- failure mode: diagnostics wrapping stops surfacing protocol events after the helper move
-- how the current design prevents or exposes it: the diagnostics wrapper still classifies upstream events through `Surrealdb_Value.fromUnknown` and the session test asserts the first eight lifecycle phases
+- failure mode: diagnostics wrapping stops surfacing protocol events after the package API move
+- how the current design prevents or exposes it: the diagnostics path still classifies upstream events through `Surrealdb_Value.fromUnknown` and the session test asserts the first eight lifecycle phases
 - test or probe covering it: `tests/connection/SurrealdbSessionSurface_test.res`
 
 - failure mode: `Query.resolve` claims a broader promise type than the collected query result boundary actually returns
@@ -115,14 +115,14 @@
 ### Emitted JS Inspection
 
 - file or command: `sed -n '1,120p' src/connection/Surrealdb_DriverContext.mjs` and `sed -n '1,120p' src/connection/Surrealdb_RemoteEngines.mjs`
-- result: verified the helper compiles to a direct `callEngineFactory(context, factory)` call and diagnostics remain a direct wrapper around `Surrealdb.applyDiagnostics`
+- result: verified the package API compiles to a direct `callEngineFactory(context, factory)` call and diagnostics remain a direct call around `Surrealdb.applyDiagnostics`
 
 ### Soundness Matrix Update
 
 - affected row:
   - `Connection / remote engine factory invocation`
-  - `Export/Helpers / package-authored helper surface`
-- update made: added the direct engine-factory row and linked the helper surface to this audit
+  - `Export/Package APIs / package-authored API surface`
+- update made: added the direct engine-factory row and linked the package API surface to this audit
 
 ## Residual Risk
 

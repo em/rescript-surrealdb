@@ -76,10 +76,10 @@ The release-blocking rows reopened here were closed on 2026-04-23 by `docs/audit
   - `%identity` sites in `src/query/Surrealdb_QueryFrame.res`
   - `%identity` sites in `src/live/Surrealdb_Frame.res`
   - `%identity` sites in `src/value/Surrealdb_RecordId.res`
-  - package-local `%identity` test helpers in `tests/query/SurrealdbPublicSurface_test.res` and `tests/connection/SurrealdbSessionSurface_test.res`
+  - package-local `%identity` test cast functions in `tests/query/SurrealdbPublicSurface_test.res` and `tests/connection/SurrealdbSessionSurface_test.res`
 - findings:
   - Many internal `%identity` sites are still representation-sealing or classifier casts.
-  - The current proof story is weakened because package-local `%identity` test helpers are still used to inspect resolved CRUD/query outputs and `RangeBound` inputs.
+  - The current proof story is weakened because package-local `%identity` test cast functions are still used to inspect resolved CRUD/query outputs and `RangeBound` inputs.
   - That pattern does not satisfy the clean external consumer proof requirement.
 
 ### Public `*Raw` APIs
@@ -103,15 +103,15 @@ The release-blocking rows reopened here were closed on 2026-04-23 by `docs/audit
   - It still needs future follow-up entries once the CRUD/query/live result redesign is chosen.
   - The current public `.json()` surfaces are not acceptable as a settled fidelity gap because they preserve a payload state the upstream declaration explicitly changes.
 
-### Helper Surfaces
+### Package-Added Surfaces
 
 - reviewed:
-  - `Surrealdb_Query` helper constructors
+  - `Surrealdb_Query` package constructors
   - `Surrealdb_JsValue`
   - `Surrealdb_RecordId.idValue`
 - findings:
-  - `Surrealdb_Query` helper constructors remain clearly package-added and are not the primary fraud source here.
-  - `Surrealdb_JsValue` is an input boundary helper, but it is currently leaking into output-side promise builder types.
+  - `Surrealdb_Query` package constructors remain clearly package-added and are not the primary fraud source here.
+  - `Surrealdb_JsValue` is an input boundary API, but it is currently leaking into output-side promise builder types.
 
 ## Documentation Sync
 

@@ -10,7 +10,7 @@ This gap report was closed on 2026-04-23 by `docs/audits/release-blocker-closure
 
 - subsystem: external consumer proof, public `unknown` boundaries, and release-facing soundness coverage
 - change: identify whether the `1.0.1` package proof is strong enough for real consumer use and whether package tests can still pass while a normal ReScript consumer hits public-surface friction
-- boundary class: public `unknown` boundaries, package-authored helper surfaces, release gate coverage
+- boundary class: public `unknown` boundaries, package-authored API surfaces, release gate coverage
 - exact public surface affected:
   - `src/value/Surrealdb_RangeBound.resi`
   - `src/value/Surrealdb_RecordId.resi`
@@ -66,7 +66,7 @@ This gap report was closed on 2026-04-23 by `docs/audits/release-blocker-closure
   - `tests/connection/SurrealdbSessionSurface_test.res`
 - chosen ReScript shape:
   - several public boundaries remain intentionally open as `unknown`
-  - the package test suite drives many of those boundaries through local `%identity` helpers such as `toUnknown`, `intToUnknown`, `stringToUnknown`, and `dictToUnknown`
+  - the package test suite drives many of those boundaries through local `%identity` cast functions such as `toUnknown`, `intToUnknown`, `stringToUnknown`, and `dictToUnknown`
 
 ## Alternatives Considered
 
@@ -83,7 +83,7 @@ This gap report was closed on 2026-04-23 by `docs/audits/release-blocker-closure
 ## Adversarial Questions
 
 - question: if the package already has tests for `RangeBound.included`, why is this still a consumer-proof gap
-- evidence-based answer: the tests only drive that boundary through local `%identity` helpers such as `intToUnknown(7)` or `table->toUnknown`. A normal external consumer calling `Surrealdb_RangeBound.included(rid)` does not compile.
+- evidence-based answer: the tests only drive that boundary through local `%identity` cast functions such as `intToUnknown(7)` or `table->toUnknown`. A normal external consumer calling `Surrealdb_RangeBound.included(rid)` does not compile.
 
 - question: does the broader consumer failure prove the binding is entirely broken
 - evidence-based answer: no. A modest external consumer compiles successfully on `1.0.1`. The problem is narrower: the release gate still allows real consumer-shape friction on specific public open boundaries.
@@ -135,14 +135,14 @@ This gap report was closed on 2026-04-23 by `docs/audits/release-blocker-closure
 
 - affected row:
   - `Value / RecordId.idValue classification`
-  - `Export/Helpers / package-authored helper surface`
+  - `Export/Package APIs / package-authored API surface`
 - update made:
   - none yet in the matrix itself; this audit records the gap that the matrix and proof process need to cover more directly
 
 ## Residual Risk
 
 - remaining open boundary:
-  - public `unknown` boundaries that are only exercised through package-internal cast helpers
+  - public `unknown` boundaries that are only exercised through package-internal cast functions
 - why it remains open:
   - the package still lacks a required external-consumer proof gate for those boundaries
 - where it is documented:
@@ -168,7 +168,7 @@ For the current SurrealDB package line, the required broad refactor is:
 - make `.json()` state explicit instead of preserving the same `'value` before and after JSON mode
 - keep raw or heterogeneous protocol and codec seams explicit secondary surfaces
 - keep the typed 99% path free of package-authored `%identity`-style consumer recovery
-- require clean packed-artifact external-consumer proof for any public boundary that package tests currently satisfy through local cast helpers
+- require clean packed-artifact external-consumer proof for any public boundary that package tests currently satisfy through local cast functions
 
 ## Release Blocker Mapping
 

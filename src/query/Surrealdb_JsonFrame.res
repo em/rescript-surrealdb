@@ -1,10 +1,8 @@
-// src/bindings/Surrealdb_JsonFrame.res — JSON-mode frame wrapper.
 // Concern: expose stream frames for explicit `.json()` builder mode without
 // pretending those payloads are classified Surreal values.
-// Source: surrealdb.d.ts — Frame<T, J> value payload becomes MaybeJsonify<T, J>
+// Source: surrealdb.d.ts — `Frame<T, J>` value payload becomes `MaybeJsonify<T, J>`
 // after `.json()`.
-// Boundary: wraps `Frame.t<unknown>` and narrows value payloads only at the
-// explicit JSON-mode boundary.
+// Boundary: seals `Frame.t<unknown>` behind explicit JSON-mode frame accessors.
 // Why this shape: `.json()` is the one upstream mode that intentionally erases
 // Surreal value classes into JSON-compatible transport values.
 // Coverage: tests/connection/SurrealdbSessionSurface_test.res and

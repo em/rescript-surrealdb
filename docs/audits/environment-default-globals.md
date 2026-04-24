@@ -22,7 +22,7 @@
 ## Local Representation
 
 - chosen shape:
-  - `defaultWebSocketImpl` now reads from a helper that returns `globalThis.WebSocket` or `undefined`
+  - `defaultWebSocketImpl` now reads from a function that returns `globalThis.WebSocket` or `undefined`
   - the public `.resi` surface now exposes `option<Surrealdb_DriverOptions.websocketImpl>`
 
 ## Alternatives Considered

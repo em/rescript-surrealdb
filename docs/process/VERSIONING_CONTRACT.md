@@ -27,7 +27,7 @@ The binding's `peerDependencies` field is the sole source of truth for which ups
 
 - Adding new public bindings for upstream surface that was previously unbound
 - Widening the peer dependency range to include new upstream versions after verification
-- Adding new package-authored helper surface
+- Adding new package-authored API surface
 - Tightening an `unknown` boundary to a precise type (this is additive, not breaking)
 
 ## What Constitutes a Fix (Patch Bump)

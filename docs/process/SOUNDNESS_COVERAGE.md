@@ -29,7 +29,7 @@ Every row must stay connected to:
 - runtime class or instance classification
 - nullish boundaries
 - error classification boundaries
-- package-authored helper surfaces
+- package-authored support surfaces
 
 Project-specific boundary classes beyond these are listed in `AGENTS.md`.
 
@@ -69,7 +69,7 @@ These do not count as soundness coverage by themselves:
 - compilation
 - a generic integration test that incidentally passes through the boundary
 - a test that never checks the specific failure mode the boundary is guarding against
-- a package-internal test that reaches a public `unknown` boundary only through local `%identity` helpers when no direct public-surface test exists
+- a package-internal test that reaches a public `unknown` boundary only through local `%identity` cast sites when no direct public-surface test exists
 - a recreated consumer app, packed tarball harness, or throwaway external project used as the package's primary proof mechanism
 - a repo-authored replacement Vitest DSL built from direct raw Vitest bindings instead of `rescript-vitest`
 

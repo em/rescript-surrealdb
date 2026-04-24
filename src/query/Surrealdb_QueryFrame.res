@@ -1,6 +1,14 @@
-// src/bindings/Surrealdb_QueryFrame.res — typed query-frame wrapper.
-// Concern: expose query stream frames with typed Surreal value payloads instead of
-// leaking raw unknown frame values through the public query stream surface.
+// Concern: expose query stream frames with classified Surreal value payloads
+// instead of leaking raw unknown frame values through the public query stream
+// surface.
+// Source: surrealdb.d.ts — ordinary query streams yield `Frame<T, J>` values on
+// the non-JSON path.
+// Boundary: seals `Frame.t<unknown>` behind classified query-frame accessors.
+// Why this shape: the ordinary query path should classify stream payloads as
+// `Surrealdb_Value.t` while keeping the raw frame boundary internal.
+// Coverage: tests/connection/SurrealdbQueryRuntimeSurface_test.res and
+// tests/query/SurrealdbOperationCoverage_test.res exercise query-frame value and
+// done variants.
 type t
 type value
 type error

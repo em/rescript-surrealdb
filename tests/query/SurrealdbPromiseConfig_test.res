@@ -3,6 +3,15 @@ let cwd = () => NodeJs.Process.process->NodeJs.Process.cwd
 let fileText = parts =>
   NodeJs.Path.join([cwd(), ...parts])->NodeJs.Fs.readFileSync->NodeJs.Buffer.toString
 
+let filesContaining = (~files, ~pattern) =>
+  files->Belt.Array.keepMap(((path, parts)) =>
+    if fileText(parts)->String.includes(pattern) {
+      Some(path)
+    } else {
+      None
+    }
+  )
+
 Vitest.describe("SurrealDB promise configurators", () => {
   let db = Surrealdb_Surreal.make()
   let queryable = db->Surrealdb_Surreal.asQueryable
@@ -104,56 +113,54 @@ Vitest.describe("SurrealDB promise configurators", () => {
   })
 
   Vitest.test("timeout is absent from the public binding builders after narrowing the unsupported contract", t => {
-    let resiTexts = [
-      ["src", "query", "Surrealdb_Create.resi"],
-      ["src", "query", "Surrealdb_Delete.resi"],
-      ["src", "query", "Surrealdb_Insert.resi"],
-      ["src", "query", "Surrealdb_Relate.resi"],
-      ["src", "query", "Surrealdb_Select.resi"],
-      ["src", "query", "Surrealdb_Update.resi"],
-      ["src", "query", "Surrealdb_Upsert.resi"],
-    ]->Array.map(fileText)
-
-    let jsTexts = [
-      ["src", "query", "Surrealdb_Create.mjs"],
-      ["src", "query", "Surrealdb_Delete.mjs"],
-      ["src", "query", "Surrealdb_Insert.mjs"],
-      ["src", "query", "Surrealdb_Relate.mjs"],
-      ["src", "query", "Surrealdb_Select.mjs"],
-      ["src", "query", "Surrealdb_Update.mjs"],
-      ["src", "query", "Surrealdb_Upsert.mjs"],
-    ]->Array.map(fileText)
+    let resiFiles = [
+      ("src/query/Surrealdb_Create.resi", ["src", "query", "Surrealdb_Create.resi"]),
+      ("src/query/Surrealdb_Delete.resi", ["src", "query", "Surrealdb_Delete.resi"]),
+      ("src/query/Surrealdb_Insert.resi", ["src", "query", "Surrealdb_Insert.resi"]),
+      ("src/query/Surrealdb_Relate.resi", ["src", "query", "Surrealdb_Relate.resi"]),
+      ("src/query/Surrealdb_Select.resi", ["src", "query", "Surrealdb_Select.resi"]),
+      ("src/query/Surrealdb_Update.resi", ["src", "query", "Surrealdb_Update.resi"]),
+      ("src/query/Surrealdb_Upsert.resi", ["src", "query", "Surrealdb_Upsert.resi"]),
+    ]
+    let jsFiles = [
+      ("src/query/Surrealdb_Create.mjs", ["src", "query", "Surrealdb_Create.mjs"]),
+      ("src/query/Surrealdb_Delete.mjs", ["src", "query", "Surrealdb_Delete.mjs"]),
+      ("src/query/Surrealdb_Insert.mjs", ["src", "query", "Surrealdb_Insert.mjs"]),
+      ("src/query/Surrealdb_Relate.mjs", ["src", "query", "Surrealdb_Relate.mjs"]),
+      ("src/query/Surrealdb_Select.mjs", ["src", "query", "Surrealdb_Select.mjs"]),
+      ("src/query/Surrealdb_Update.mjs", ["src", "query", "Surrealdb_Update.mjs"]),
+      ("src/query/Surrealdb_Upsert.mjs", ["src", "query", "Surrealdb_Upsert.mjs"]),
+    ]
 
     t->Vitest.expect((
-      resiTexts->Array.every(text => !(text->String.includes("let timeout:"))),
-      jsTexts->Array.every(text => !(text->String.includes("function timeout("))),
+      filesContaining(~files=resiFiles, ~pattern="let timeout:"),
+      filesContaining(~files=jsFiles, ~pattern="function timeout("),
     ))
-    ->Vitest.Expect.toEqual((true, true))
+    ->Vitest.Expect.toEqual(([], []))
   })
 
   Vitest.test("raw string output setters are absent from the public mutation builders after narrowing to the closed output enum", t => {
-    let resiTexts = [
-      ["src", "query", "Surrealdb_Create.resi"],
-      ["src", "query", "Surrealdb_Delete.resi"],
-      ["src", "query", "Surrealdb_Insert.resi"],
-      ["src", "query", "Surrealdb_Relate.resi"],
-      ["src", "query", "Surrealdb_Update.resi"],
-      ["src", "query", "Surrealdb_Upsert.resi"],
-    ]->Array.map(fileText)
-
-    let jsTexts = [
-      ["src", "query", "Surrealdb_Create.mjs"],
-      ["src", "query", "Surrealdb_Delete.mjs"],
-      ["src", "query", "Surrealdb_Insert.mjs"],
-      ["src", "query", "Surrealdb_Relate.mjs"],
-      ["src", "query", "Surrealdb_Update.mjs"],
-      ["src", "query", "Surrealdb_Upsert.mjs"],
-    ]->Array.map(fileText)
+    let resiFiles = [
+      ("src/query/Surrealdb_Create.resi", ["src", "query", "Surrealdb_Create.resi"]),
+      ("src/query/Surrealdb_Delete.resi", ["src", "query", "Surrealdb_Delete.resi"]),
+      ("src/query/Surrealdb_Insert.resi", ["src", "query", "Surrealdb_Insert.resi"]),
+      ("src/query/Surrealdb_Relate.resi", ["src", "query", "Surrealdb_Relate.resi"]),
+      ("src/query/Surrealdb_Update.resi", ["src", "query", "Surrealdb_Update.resi"]),
+      ("src/query/Surrealdb_Upsert.resi", ["src", "query", "Surrealdb_Upsert.resi"]),
+    ]
+    let jsFiles = [
+      ("src/query/Surrealdb_Create.mjs", ["src", "query", "Surrealdb_Create.mjs"]),
+      ("src/query/Surrealdb_Delete.mjs", ["src", "query", "Surrealdb_Delete.mjs"]),
+      ("src/query/Surrealdb_Insert.mjs", ["src", "query", "Surrealdb_Insert.mjs"]),
+      ("src/query/Surrealdb_Relate.mjs", ["src", "query", "Surrealdb_Relate.mjs"]),
+      ("src/query/Surrealdb_Update.mjs", ["src", "query", "Surrealdb_Update.mjs"]),
+      ("src/query/Surrealdb_Upsert.mjs", ["src", "query", "Surrealdb_Upsert.mjs"]),
+    ]
 
     t->Vitest.expect((
-      resiTexts->Array.every(text => !(text->String.includes("let outputRaw:"))),
-      jsTexts->Array.every(text => !(text->String.includes("function outputRaw("))),
+      filesContaining(~files=resiFiles, ~pattern="let outputRaw:"),
+      filesContaining(~files=jsFiles, ~pattern="function outputRaw("),
     ))
-    ->Vitest.Expect.toEqual((true, true))
+    ->Vitest.Expect.toEqual(([], []))
   })
 })

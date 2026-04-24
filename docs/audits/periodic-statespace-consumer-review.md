@@ -50,7 +50,7 @@
   - `Surrealdb_QueryResponse.*Raw`
   - `Surrealdb_ServerError.makeRpcError*`
 - findings:
-  - The statespace callsites reviewed use the typed wrappers, not the raw forms.
+  - The statespace callsites reviewed use the typed APIs, not the raw forms.
   - The remaining public `*Raw` APIs are narrow exact-upstream or package-added low-level escape hatches.
 
 ### Fidelity Gaps
@@ -72,7 +72,7 @@
   - `Surrealdb_RecordId.make`
   - `Surrealdb_Surreal.defaultWebSocketImpl`
 - findings:
-  - A clean throwaway ReScript 12 consumer compiled a statespace-like harness using these helpers against the published `1.0.1` package.
+  - A clean throwaway ReScript 12 consumer compiled a statespace-like harness using these package APIs against the published `1.0.1` package.
   - The package root import also succeeded after the consumer build.
 
 ## Documentation Sync
@@ -97,7 +97,7 @@
 - missing direct tests:
   - direct tests for `RecordId.idValue` compound `ArrayId` and `ObjectId`
   - a release-path proof that installs the packed artifact into a clean ReScript consumer and runs top-level `rescript build`
-  - a modest consumer harness exercising the public helpers that real app code uses together
+  - a modest consumer harness exercising the public package APIs that real app code uses together
 
 ## Actions
 

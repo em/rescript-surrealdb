@@ -2,8 +2,8 @@
 
 ## Claim
 
-- subsystem: query timeout helpers and connection health probing
-- change: determine whether the current public package can honestly treat builder `timeout()` helpers and `health()` on `ws/rpc` as release-healthy supported surfaces, and if not, what narrowed public contract closes that lie
+- subsystem: query timeout methods and connection health probing
+- change: determine whether the current public package can honestly treat builder `timeout()` methods and `health()` on `ws/rpc` as release-healthy supported surfaces, and if not, what narrowed public contract closes that lie
 - boundary class:
   - package-authored support claim over forwarded upstream methods
   - runtime support boundary on the ordinary consumer path
@@ -31,7 +31,7 @@
 
 - direct package tests:
   - current narrowing tests now prove:
-    - builder `timeout` helpers are absent from the public binding files
+    - builder `timeout` methods are absent from the public binding files
     - explicit raw query text with `TIMEOUT` still works on the exercised server path
     - `health` is absent from the public binding files
 - direct consumer probe from `statespace`:
@@ -42,7 +42,7 @@
 
 ## Local Representation
 
-- timeout helpers are no longer exposed on the public CRUD/select/relate builder modules
+- timeout methods are no longer exposed on the public CRUD/select/relate builder modules
 - `health()` is no longer exposed on the public `Surrealdb_Surreal` and `Surrealdb_RpcEngine` modules
 - package tests no longer encode the failure modes as passing expectations
 
@@ -74,7 +74,7 @@
 
 ## Correction Applied
 
-1. The public builder `timeout` helpers were removed from the binding surface instead of continuing to forward a known-broken upstream path.
-2. The public `health()` helpers were removed from the `ws/rpc` binding surface instead of continuing to imply support where direct runtime proof only showed failure.
+1. The public builder `timeout` methods were removed from the binding surface instead of continuing to forward a known-broken upstream path.
+2. The public `health()` methods were removed from the `ws/rpc` binding surface instead of continuing to imply support where direct runtime proof only showed failure.
 3. The old tests that treated those broken outcomes as success were replaced.
 4. The package now documents the narrowed contract in `docs/TYPE_FIDELITY.md`, `docs/TYPE_SOUNDNESS_AUDIT.md`, and `docs/RELEASE_BLOCKERS.md`.

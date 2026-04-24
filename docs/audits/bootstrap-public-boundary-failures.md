@@ -4,7 +4,7 @@
 
 - subsystem: package-wide public boundary inventory
 - change: record the main failure patterns that still require adversarial review and keep them out of ad hoc root notes
-- boundary class: query result boundary, event payload boundary, nullable API boundary, package helper boundary
+- boundary class: query result boundary, event payload boundary, nullable API boundary, package-added API boundary
 - exact public surface affected:
   - `src/query/Surrealdb_Query.resi`
   - `src/query/Surrealdb_QueryFrame.resi`
@@ -49,9 +49,9 @@
   - `src/api/Surrealdb_ApiResponse.resi`
   - `src/query/Surrealdb_Export.resi`
 - chosen ReScript shape:
-  - query helpers resolve to `array<Surrealdb_Value.t>` and stream through `Surrealdb_QueryFrame.t`
+  - query package APIs resolve to `array<Surrealdb_Value.t>` and stream through `Surrealdb_QueryFrame.t`
   - event subscriptions accept an event string and deliver `array<Surrealdb_Value.t>`
-  - helper surfaces remain public but must stay documented as package-added
+  - package-added surfaces remain public but must stay documented as package-added
   - nullable API and frame payload boundaries remain explicitly audited in `docs/SOUNDNESS_MATRIX.md`
 
 ## Alternatives Considered
@@ -71,24 +71,24 @@
 - question: does `array<Surrealdb_Value.t>` on subscribe callbacks still lose too much upstream information
 - evidence-based answer: yes, it loses keyed tuple specificity, and that loss is explicitly documented in `docs/TYPE_FIDELITY.md`. The remaining risk stays marked `weak` in the live rows of `docs/SOUNDNESS_MATRIX.md`.
 
-- question: are package-added helpers easy to mistake for direct SDK exports
-- evidence-based answer: yes unless the repo keeps them documented. `docs/TYPE_FIDELITY.md`, `README.md`, and the helper row in `docs/SOUNDNESS_MATRIX.md` now all mark them as package-authored.
+- question: are package-added APIs easy to mistake for direct SDK exports
+- evidence-based answer: yes unless the repo keeps them documented. `docs/TYPE_FIDELITY.md`, `README.md`, and the package-added row in `docs/SOUNDNESS_MATRIX.md` now all mark them as package-authored.
 
 - question: can a new agent still drift the README back into an agent notebook
 - evidence-based answer: the repo now separates the human-facing landing page from the maintainer process, and `docs/process/README_CONTRACT.md` plus `AGENTS.md` make that split explicit.
 
 ## Failure Modes Targeted
 
-- failure mode: query helpers pretend to preserve result typing beyond what query text proves
-- how the current design prevents or exposes it: public helper results stay at `array<Surrealdb_Value.t>` and the fidelity gap is documented
+- failure mode: query package APIs pretend to preserve result typing beyond what query text proves
+- how the current design prevents or exposes it: public package-API results stay at `array<Surrealdb_Value.t>` and the fidelity gap is documented
 - test or probe covering it: `tests/query/SurrealdbPublicSurface_test.res`
 
 - failure mode: event payload tuples are treated as closed or event-specific when they are not
 - how the current design prevents or exposes it: event name stays open, payloads are classified through `Surrealdb_Value.fromUnknown`, and the matrix keeps the current proof status explicit
 - test or probe covering it: `tests/live/SurrealdbStreamUtility_test.res`, `tests/connection/SurrealdbSessionSurface_test.res`
 
-- failure mode: helper APIs drift into undocumented pseudo-upstream surface
-- how the current design prevents or exposes it: helpers are cataloged in `docs/TYPE_FIDELITY.md` and tracked as their own row in the soundness matrix
+- failure mode: package-added APIs drift into undocumented pseudo-upstream surface
+- how the current design prevents or exposes it: package-added APIs are cataloged in `docs/TYPE_FIDELITY.md` and tracked as their own row in the soundness matrix
 - test or probe covering it: `tests/query/SurrealdbPublicSurface_test.res`
 
 - failure mode: nullable API and frame boundaries blur absence and payload shape
@@ -119,12 +119,12 @@
   - `Query / query frame classification`
   - `Live / event payload boundary`
   - `API / nullable response fields`
-  - `Export / Helpers / package-authored helper surface`
+  - `Export / Package APIs / package-authored API surface`
 - update made: linked those rows to this bootstrap audit and moved the failure inventory into `docs/audits/`
 
 ## Residual Risk
 
-- remaining open boundary: query result semantics, event payload tuples, nullable API details, and helper drift still need stronger direct tests and fresh runtime probes
+- remaining open boundary: query result semantics, event payload tuples, nullable API details, and package-added API drift still need stronger direct tests and fresh runtime probes
 - why it remains open: these are the hardest value-dependent parts of the SDK surface and the current repo inventory still marks several rows as `weak` or `partial`
 - where it is documented: `docs/TYPE_FIDELITY.md`, `docs/TYPE_SOUNDNESS_AUDIT.md`, `docs/SOUNDNESS_MATRIX.md`
 

@@ -128,7 +128,7 @@
 - how the current design prevents or exposes it: compound ids use a recursive algebraic subset, nested value-class leaves round-trip, and unsupported nested leaves return `None`
 - test or probe covering it: `tests/value/SurrealdbValueSurface_test.res`, `scripts/packedConsumerProof.mjs`
 
-- failure mode: package-local `%identity` helpers overstate public consumer proof
+- failure mode: package-local `%identity` cast functions overstate public consumer proof
 - how the current design prevents or exposes it: the packed tarball is installed into a clean consumer that compiles and runs against only the published package surface
 - test or probe covering it: `scripts/packedConsumerProof.mjs`
 
@@ -169,7 +169,7 @@
   - `Query / CRUD/live output domain`
   - `Query / .json() mode fidelity`
   - `API / ApiPromise.value and .json() state`
-  - `Support / JsValue input helper surface`
+  - `Support / JsValue input API surface`
 - update made: the four release-blocker rows were closed and their evidence status raised to `strong`
 
 ## Residual Risk
@@ -177,7 +177,7 @@
 - query results still depend on query text and remain a deliberate classified boundary
 - event publisher callbacks remain value-dependent on the event string and stay flattened to `array<Surrealdb_Value.t>`
 - codec encode/decode boundaries remain intentionally open at the foreign-data seam
-- `ApiPromise.then_` remains a smaller fulfillment helper than the full upstream Promise overload set
+- `ApiPromise.then_` remains a smaller fulfillment API than the full upstream Promise overload set
 
 ## Verdict
 

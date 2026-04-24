@@ -97,12 +97,12 @@ Each entry states:
   - exact `MaybeJsonify<T, J>` propagation for caller-defined `T`
 - Why: upstream tracks a real JSON-mode state. The binding models that state explicitly, but it does not pretend it can preserve arbitrary caller-defined schema types through that transition.
 
-### Promise-builder timeout helpers
+### `timeout()` on CRUD/select/relate builders
 
 - Upstream runtime currently observed:
   - the installed SDK path compiles timeout clauses as `TIMEOUT TIMEOUT 5s` on the exercised query builders
 - ReScript representation:
-  - no public builder `timeout` helper is exposed on:
+  - no public builder `timeout` method is exposed on:
     - `Surrealdb_Select`
     - `Surrealdb_Create`
     - `Surrealdb_Update`
@@ -113,15 +113,15 @@ Each entry states:
 - Strict supported subset:
   - explicit raw SurrealQL authored through `Surrealdb_Query.text`, `Surrealdb_Query.statement`, or other caller-owned query text paths
 - Unsupported remainder:
-  - package-exported CRUD/select/relate builder helpers named `timeout()`
-- Why: the upstream builder method deterministically emits broken query text on the exercised path. The binding now narrows the public contract instead of forwarding a helper that lies.
+  - package-exported CRUD/select/relate builder methods named `timeout()`
+- Why: the upstream builder method deterministically emits broken query text on the exercised path. The binding now narrows the public contract instead of exporting it.
 
 ### `Surrealdb_Surreal.health` on `ws/rpc`
 
 - Upstream runtime currently observed:
   - `health()` over the exercised `ws://127.0.0.1:8787/rpc` path returns `Method not found`
 - ReScript representation:
-  - no public `health` helper is exposed on:
+  - no public `health` surface is exposed on:
     - `Surrealdb_Surreal`
     - `Surrealdb_RpcEngine`
 - Strict supported subset:
@@ -145,7 +145,7 @@ Each entry states:
 
 - TS source: Promise-like `then(...)` overloads on SDK builder classes
 - ReScript representation:
-  - fulfillment-preserving helpers only
+- the common fulfillment-preserving path only
 - Strict supported subset:
   - the ordinary fulfillment path used by the package surface
 - Unsupported remainder:
@@ -175,7 +175,7 @@ Each entry states:
 - ReScript representation:
   - `Surrealdb_RemoteEngines.factory` stays opaque
   - `Surrealdb_DriverContext.instantiate` invokes one opaque factory with a typed context
-- Why: the SDK returns a plain JS record of function values. The helper keeps the public graph acyclic without pretending the SDK exports a named `instantiate` method.
+- Why: the SDK returns a plain JS record of function values. The binding keeps the public graph acyclic without pretending the SDK exports a named `instantiate` method.
 
 ### Environment default WebSocket
 
@@ -230,9 +230,9 @@ Each entry states:
 - ReScript representation: `Surrealdb_Value.t` is a package classifier layered over those runtime values
 - Why: this package-added surface supports exhaustive matching across mixed runtime payloads. It is not a direct upstream SDK export and stays documented as package-owned API.
 
-### `Surrealdb_Query` helper constructors
+### `Surrealdb_Query` public constructors
 
-- Package-added helpers:
+- Public surface:
   - `runTextOn`
   - `runText`
   - `runBoundOn`
@@ -243,11 +243,11 @@ Each entry states:
   - `countAllStatement`
   - `tableStructureStatement`
   - `dbStructureStatement`
-- Why: these helpers are convenience layers around `query()` and `BoundQuery`. They remain public, but they are not documented as upstream SDK exports.
+- Why: these constructors are convenience layers around `query()` and `BoundQuery`. They remain public, but they are not documented as upstream SDK exports.
 
-### Engine factory helpers
+### Engine factory public surface
 
-- Package-added helpers:
+- Public surface:
   - `Surrealdb_DriverContext.instantiate`
   - `Surrealdb_RemoteEngines.keys`
-- Why: the SDK exposes engines as a string-keyed record of function values. These helpers make that record usable from ReScript without claiming the SDK exports named `instantiate` or `keys` methods.
+- Why: the SDK exposes engines as a string-keyed record of function values. These constructors make that record usable from ReScript without claiming the SDK exports named `instantiate` or `keys` methods.

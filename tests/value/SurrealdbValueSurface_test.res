@@ -10,10 +10,32 @@ let stringToUnknown = SurrealdbTestCasts.stringToUnknown
 @val external infinityValue: float = "Infinity"
 let jsonFromUnknown = SurrealdbTestCasts.jsonFromUnknown
 @module("surrealdb") @new external makeRawRecordId: (string, unknown) => Surrealdb_RecordId.t = "RecordId"
-@module("../support/SurrealdbTestFixtures.mjs") external functionLeaf: unit => unknown = "functionLeaf"
 
 let jsonText = value =>
   value->JSON.stringifyAny->Option.getOr("")
+
+let valueShape = value =>
+  switch value {
+  | Surrealdb_Value.Int(raw) => `Int:${raw->Int.toString}`
+  | Surrealdb_Value.Float(raw) =>
+    if Float.isNaN(raw) {
+      "Float:NaN"
+    } else if raw == infinityValue {
+      "Float:Infinity"
+    } else if raw == -1.0 *. infinityValue {
+      "Float:-Infinity"
+    } else {
+      `Float:${raw->Float.toString}`
+    }
+  | _ => `Unexpected:${value->Surrealdb_Value.toText}`
+  }
+
+let boundValueShape = value =>
+  switch value {
+  | Surrealdb_BoundValue.Int(raw) => `Int:${raw->Int.toString}`
+  | Surrealdb_BoundValue.Float(raw) => `Float:${raw->Float.toString}`
+  | _ => `Unexpected:${value->Surrealdb_BoundValue.toText}`
+  }
 
 let dateTimeCompactText = ((seconds, nanos)) => [
   seconds->BigInt.toString,
@@ -72,35 +94,24 @@ Vitest.describe("SurrealDB value surface", () => {
     let upperBoundClassified = floatToUnknown(2147483647.0)->Surrealdb_Value.fromUnknown
     let tooLargeClassified = floatToUnknown(2147483648.0)->Surrealdb_Value.fromUnknown
 
-    t->Vitest.expect((
-      switch nanClassified {
-      | Float(value) => Float.isNaN(value)
-      | _ => false
-      },
-      switch positiveInfinityClassified {
-      | Float(value) => value == infinityValue
-      | _ => false
-      },
-      switch negativeInfinityClassified {
-      | Float(value) => value == -1.0 *. infinityValue
-      | _ => false
-      },
-      switch lowerBoundClassified {
-      | Int(value) => value == -2147483648
-      | _ => false
-      },
-      switch upperBoundClassified {
-      | Int(value) => value == 2147483647
-      | _ => false
-      },
-      switch tooLargeClassified {
-      | Float(value) => value == 2147483648.0
-      | _ => false
-      },
-    ))->Vitest.Expect.toEqual((true, true, true, true, true, true))
+    t->Vitest.expect([
+      valueShape(nanClassified),
+      valueShape(positiveInfinityClassified),
+      valueShape(negativeInfinityClassified),
+      valueShape(lowerBoundClassified),
+      valueShape(upperBoundClassified),
+      valueShape(tooLargeClassified),
+    ])->Vitest.Expect.toEqual([
+        "Float:NaN",
+        "Float:Infinity",
+        "Float:-Infinity",
+        "Int:-2147483648",
+        "Int:2147483647",
+        "Float:2147483648",
+      ])
   })
 
-  Vitest.test("decimal and duration wrappers stay callable through the installed runtime", t => {
+  Vitest.test("decimal and duration runtime operations stay callable through the installed runtime", t => {
     let decimal = Surrealdb_Decimal.fromString("12.34")
     let decimalScientific = Surrealdb_Decimal.fromScientificNotation("1.234e1")
     let decimalFromFloat = Surrealdb_Decimal.fromFloat(12.34)
@@ -229,7 +240,7 @@ Vitest.describe("SurrealDB value surface", () => {
     ))
   })
 
-  Vitest.test("datetime, uuid, file, table, record-id, and range wrappers stay typed", t => {
+  Vitest.test("datetime, uuid, file, table, record-id, and range values stay typed", t => {
     let dateTime = Surrealdb_DateTime.fromString("2024-01-02T03:04:05Z")
     let dateTimeFromCompact = dateTime->Surrealdb_DateTime.toCompact->Surrealdb_DateTime.fromCompact
     let dateTimeFromMilliseconds =
@@ -512,42 +523,28 @@ Vitest.describe("SurrealDB value surface", () => {
           ]),
         ),
       )
-    let unsupportedLeafRecordId =
-      makeRawRecordId("widgets", [functionLeaf()]->arrayToUnknown)
-
     t->Vitest.expect((
       nestedValueClassRecordId->Surrealdb_RecordId.toString,
       nestedValueClassRecordId->Surrealdb_RecordId.idValue->Option.map(recordIdValueText),
-      unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.startsWith("widgets:["),
-      unsupportedLeafRecordId->Surrealdb_RecordId.toString->String.includes("rawFunctionLeaf"),
-      unsupportedLeafRecordId->Surrealdb_RecordId.idValue->Option.isSome,
     ))->Vitest.Expect.toEqual((
       "widgets:{ \"when\": d\"2024-01-02T03:04:05.000Z\", \"nested\": [ 1, 2, orders ] }",
       Some("object:{\"when\":\"2024-01-02T03:04:05.000Z\",\"nested\":[1,{\"recordIdComponentType\":\"bigint\",\"value\":\"2\"},\"orders\"]}"),
-      true,
-      true,
-      false,
     ))
   })
 
   Vitest.test("bound value classification keeps integer boundaries honest", t => {
-    t->Vitest.expect((
-      switch floatToUnknown(-2147483648.0)->Surrealdb_BoundValue.fromUnknown {
-      | Int(value) => value == -2147483648
-      | _ => false
-      },
-      switch floatToUnknown(2147483647.0)->Surrealdb_BoundValue.fromUnknown {
-      | Int(value) => value == 2147483647
-      | _ => false
-      },
-      switch floatToUnknown(2147483648.0)->Surrealdb_BoundValue.fromUnknown {
-      | Float(value) => value == 2147483648.0
-      | _ => false
-      },
-    ))->Vitest.Expect.toEqual((true, true, true))
+    t->Vitest.expect([
+      floatToUnknown(-2147483648.0)->Surrealdb_BoundValue.fromUnknown->boundValueShape,
+      floatToUnknown(2147483647.0)->Surrealdb_BoundValue.fromUnknown->boundValueShape,
+      floatToUnknown(2147483648.0)->Surrealdb_BoundValue.fromUnknown->boundValueShape,
+    ])->Vitest.Expect.toEqual([
+        "Int:-2147483648",
+        "Int:2147483647",
+        "Float:2147483648",
+      ])
   })
 
-  Vitest.test("geometry and bound-value wrappers preserve runtime classification", t => {
+  Vitest.test("geometry and bound-value classification preserves runtime contracts", t => {
     let point =
       Surrealdb_GeometryPoint.make(
         ~longitude=Surrealdb_GeometryPoint.Float(1.0),

@@ -34,7 +34,7 @@ The remaining `%identity` sites fall into four accepted classes:
 - checked runtime casts after `instanceof`, `typeof`, or nullable checks
 - honest subtype upcasts for real SDK inheritance
 - explicit widening into `unknown` at foreign boundaries
-- internal boundary sealing for opaque wrappers and union simulation
+- internal boundary sealing for opaque boundary modules and union simulation
 
 No current public `%identity` site manufactures a more precise public type than the runtime proved.
 
@@ -60,9 +60,9 @@ No current public `%identity` site manufactures a more precise public type than 
    - compound ids use a recursive `component` algebra
    - unsupported nested leaves remain explicit through `option<idValue>`
 
-6. Public boundary tests no longer depend only on package-local cast helpers.
+6. Public boundary tests no longer depend only on package-local cast functions.
    - direct repo tests must exercise the public call shape itself
-   - package-local `%identity` helpers do not count as proof for the typed path
+   - package-local `%identity` cast functions do not count as proof for the typed path
 
 ## Intentional Public Open Boundaries
 
@@ -93,7 +93,7 @@ No current public `%identity` site manufactures a more precise public type than 
 - direct tests now cover the builder output-domain redesign, explicit `.json()` state transitions, `RangeBound`, `RecordId.idValue`, `Jsonify`, API optional fields, `ApiPromise.then_`, and live message value classification
 - direct repo tests cover:
   - query/auth typed-path behavior
-  - `JsValue` typed input helpers
+  - `JsValue` typed input APIs
   - `RangeBound` supported constructor input
   - `RecordId.idValue` supported subset and unsupported remainder
   - `CborCodec` and `ValueCodec` decode boundaries
@@ -106,7 +106,7 @@ No current public `%identity` site manufactures a more precise public type than 
 - event publisher callbacks remain flattened to `array<Surrealdb_Value.t>` because the payload tuple depends on the runtime event string
 - codec boundaries remain intentionally open at the foreign-data seam
 - `ApiPromise.then_` remains narrower than the full upstream Promise overload family
-- timeout builder helpers are intentionally absent from the public binding surface until the upstream runtime defect is closed
+- timeout builder methods are intentionally absent from the public binding surface until the upstream runtime defect is closed
 - `health()` is intentionally absent from the public `ws/rpc` binding surface until a supported runtime path exists
 
 ## Verdict

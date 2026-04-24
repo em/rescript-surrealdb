@@ -73,7 +73,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 - Preserve upstream names, arity, async shape, nullability, and error behavior unless there is a strong, documented reason not to.
 - Prefer smaller honest public APIs over larger unsound ones.
 - Prefer a strict supported subset over wider unsound coverage. If one edge case would force a weaker public type across the whole API, keep the stricter model for the sound subset and document the unsupported remainder.
-- Prefer zero-cost or near-zero-cost interop. New runtime wrappers need proof that they solve a real problem that externals cannot solve.
+- Prefer zero-cost or near-zero-cost interop. New runtime bridge modules need proof that they solve a real problem that externals cannot solve.
 - Separate exact SDK bindings from package-authored support surface. That surface is allowed, but it must be clearly labeled as package-added surface in docs.
 - Do not flatten branded SDK values into JSON or plain records if the runtime value is actually a class instance.
 
@@ -89,7 +89,7 @@ When docs, declarations, and runtime differ, verify the runtime and document the
 
 ## ReScript Representation Rules
 
-- Use `@module`, `@scope`, `@send`, `@get`, `@set`, `@new`, `@variadic`, `@return(...)`, `@as`, `@tag`, and `@unboxed` before inventing wrappers.
+- Use `@module`, `@scope`, `@send`, `@get`, `@set`, `@new`, `@variadic`, `@return(...)`, `@as`, `@tag`, and `@unboxed` before inventing package-authored APIs.
 - Use records for fixed config objects and fixed payload shapes.
 - Use `dict<'a>` only for true open dictionaries with uniform value type.
 - Use opaque `type t` for classes, branded values, iterators, and external objects with behavior.
@@ -176,7 +176,7 @@ When upstream uses keyed variadic tuples, mapped types, conditional types, runti
 
 The following are fraud in a public binding repository:
 
-- Claiming a 1:1 binding while exporting package-authored wrappers as if they were upstream SDK exports.
+- Claiming a 1:1 binding while exporting package-authored APIs as if they were upstream SDK exports.
 - Silently replacing an unrepresentable TypeScript type with `string`, `Js.Json.t`, `dict<unknown>`, `option<'a>`, `'a`, or `unit`.
 - Translating TypeScript generics into ML polymorphism without proving that the runtime preserves the parameter.
 - Merging incompatible overloads into a vague catch-all signature.
@@ -251,7 +251,7 @@ If `docs/RELEASE_BLOCKERS.md` contains any open blocker, breadth work does not c
 Do not recreate throwaway consumer apps, packed-tarball consumer fixtures, or external-project harnesses as the package's proof mechanism. User-reported consumer failures are bug reports to objectify into direct binding defects and repo-owned tests, not a prompt to build fake consumers inside the binding repo.
 
 ReScript-authored tests must use `rescript-vitest` as the test framework boundary. Do not replace it with a repo-owned Vitest DSL built from direct raw Vitest externals.
-ReScript-authored tests stay in `.res` and use native `async`/`await`. Do not add hand-written `.mjs` test stubs, fixture modules, or promise wrappers to simulate SDK behavior.
+ReScript-authored tests stay in `.res` and use native `async`/`await`. Do not add hand-written `.mjs` test stubs, fixture modules, or promise shims to simulate SDK behavior.
 
 The process docs define:
 
@@ -308,7 +308,7 @@ For binding work, verification means:
 - verify both presence and absence cases for nullish and optional boundaries
 - verify error classification on real thrown values or realistic constructed failures
 - verify unsubscribe, cleanup, or iterator behavior on event and stream surfaces
-- verify that public typed wrappers and any public `*Raw` companion APIs still agree with each other
+- verify that public typed APIs and any public `*Raw` companion APIs still agree with each other
 
 If a change affects the public surface but does not change tests or docs, assume the work is incomplete until proven otherwise.
 
@@ -368,7 +368,7 @@ If consumers should not need the generator at build time, commit generated artif
 - `rescript-vitest`
   - compatibility across compiler modes
   - explicit binding context
-  - ergonomic wrappers that still map back to upstream Vitest
+  - ergonomic package APIs that still map back to upstream Vitest
 - `rescript-edgedb`
   - generate from a stronger source of truth when available
   - keep generated artifacts in source when that improves consumer reliability

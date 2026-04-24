@@ -3,10 +3,50 @@ module CoverageSupport = SurrealdbCoverageTestSupport
 
 let closeIgnore = SessionSupport.closeIgnore
 let connectServerDatabase = SessionSupport.connectServerDatabase
+let removeTableIgnore = SessionSupport.removeTableIgnore
 let namespaceDatabaseSelection = SessionSupport.namespaceDatabaseSelection
 let responseStatus = SessionSupport.responseStatus
 let hasField = CoverageSupport.hasField
 let dictFieldText = CoverageSupport.dictFieldText
+
+let objectFieldText = (value, fieldName) =>
+  switch value {
+  | Surrealdb_Value.Object(entries) => entries->Dict.get(fieldName)->Option.map(Surrealdb_Value.toText)
+  | _ => None
+  }
+
+let firstObjectFieldText = (value, fieldName) =>
+  switch value {
+  | Surrealdb_Value.Object(_) => objectFieldText(value, fieldName)
+  | Surrealdb_Value.Array(values) => values->Array.get(0)->Option.flatMap(value => objectFieldText(value, fieldName))
+  | _ => None
+  }
+
+let arrayObjectFieldTexts = (value, fieldName) =>
+  switch value {
+  | Surrealdb_Value.Array(values) => values->Array.map(value => objectFieldText(value, fieldName))
+  | _ => [None]
+  }
+
+let frameObjectFieldText = (~frame, ~fieldName) =>
+  frame
+  ->Surrealdb_QueryFrame.asValue
+  ->Option.flatMap(valueFrame => objectFieldText(valueFrame->Surrealdb_QueryFrame.value, fieldName))
+
+let frameDoneType = frame =>
+  frame->Surrealdb_QueryFrame.asDone->Option.map(Surrealdb_QueryFrame.doneType)
+
+let normalizeBindSlots = query =>
+  query
+  ->String.split(" ")
+  ->Array.map(token =>
+      if token->String.startsWith("$bind__") {
+        "$bind__"
+      } else {
+        token
+      }
+    )
+  ->Belt.Array.joinWith(" ", token => token)
 
 Vitest.describe("SurrealDB query operation coverage", () => {
   Vitest.test("statement builders and export options stay explicit on the public surface", t => {
@@ -52,7 +92,7 @@ Vitest.describe("SurrealDB query operation coverage", () => {
     ))
   })
 
-  Vitest.testAsync("query helpers execute across collect, run, resolve, and stream wrappers", async t => {
+  Vitest.testAsync("query collect, run, resolve, and stream surfaces execute through the public API", async t => {
     let db = Surrealdb_Surreal.make()
     try {
       await connectServerDatabase(db)
@@ -165,7 +205,7 @@ Vitest.describe("SurrealDB query operation coverage", () => {
     }
   })
 
-  Vitest.testAsync("run, auth, and export wrappers execute through the public surface", async t => {
+  Vitest.testAsync("run, auth, and export surfaces execute through the public API", async t => {
     let db = Surrealdb_Surreal.make()
     let authTable = "auth_user"
     let authAccess = "account_test"
@@ -297,6 +337,246 @@ DEFINE ACCESS OVERWRITE ${authAccess} ON DATABASE TYPE RECORD
       await closeIgnore(db)
     } catch {
     | error =>
+      await closeIgnore(db)
+      throw(error)
+    }
+  })
+
+  Vitest.test("mutation builders keep their explicit public surfaces", t => {
+    let db = CoverageSupport.makeDisconnectedDb()
+    let table = Surrealdb_Table.make("widgets")
+    let edgeTable = Surrealdb_Table.make("related_to")
+    let recordId = Surrealdb_RecordId.make("widgets", "alpha")
+    let recordId2 = Surrealdb_RecordId.make("widgets", "beta")
+    let range = Surrealdb_RecordIdRange.make(
+      ~table="widgets",
+      ~begin=Surrealdb_RangeBound.included(Surrealdb_RangeBound.String("a")),
+      ~end=Surrealdb_RangeBound.excluded(Surrealdb_RangeBound.String("z")),
+      (),
+    )
+    let data =
+      Dict.fromArray([
+        ("label", Surrealdb_JsValue.string("alpha")),
+        ("count", Surrealdb_JsValue.int(3)),
+      ])
+    let patchValue =
+      Surrealdb_JsValue.object(Dict.fromArray([("ok", Surrealdb_JsValue.bool(true))]))
+    let condition = Surrealdb_Expr.eq("status", Surrealdb_JsValue.string("active"))
+    let createCompiled =
+      db
+      ->Surrealdb_Create.fromRecordId(recordId)
+      ->Surrealdb_Create.content(data)
+      ->Surrealdb_Create.patch(patchValue)
+      ->Surrealdb_Create.output(Surrealdb_Output.After)
+      ->Surrealdb_Create.json
+      ->Surrealdb_Create.compile
+    let deleteCompiled =
+      db
+      ->Surrealdb_Delete.fromRange(range)
+      ->Surrealdb_Delete.output(Surrealdb_Output.Before)
+      ->Surrealdb_Delete.json
+      ->Surrealdb_Delete.compile
+    let insertCompiled =
+      db
+      ->Surrealdb_Insert.intoTable(table, Surrealdb_JsValue.object(data))
+      ->Surrealdb_Insert.relation
+      ->Surrealdb_Insert.ignore
+      ->Surrealdb_Insert.output(Surrealdb_Output.After)
+      ->Surrealdb_Insert.json
+      ->Surrealdb_Insert.compile
+    let updateCompiled =
+      db
+      ->Surrealdb_Update.fromTable(table)
+      ->Surrealdb_Update.content(data)
+      ->Surrealdb_Update.merge(data)
+      ->Surrealdb_Update.replace(data)
+      ->Surrealdb_Update.patch(patchValue)
+      ->Surrealdb_Update.where(condition)
+      ->Surrealdb_Update.output(Surrealdb_Output.After)
+      ->Surrealdb_Update.json
+      ->Surrealdb_Update.compile
+    let upsertCompiled =
+      db
+      ->Surrealdb_Upsert.fromRecordId(recordId)
+      ->Surrealdb_Upsert.content(data)
+      ->Surrealdb_Upsert.merge(data)
+      ->Surrealdb_Upsert.replace(data)
+      ->Surrealdb_Upsert.patch(patchValue)
+      ->Surrealdb_Upsert.where(condition)
+      ->Surrealdb_Upsert.output(Surrealdb_Output.After)
+      ->Surrealdb_Upsert.json
+      ->Surrealdb_Upsert.compile
+    let relateCompiled =
+      db
+      ->Surrealdb_Relate.records(
+          recordId,
+          edgeTable,
+          recordId2,
+          ~data=data,
+          (),
+        )
+      ->Surrealdb_Relate.unique
+      ->Surrealdb_Relate.output(Surrealdb_Output.After)
+      ->Surrealdb_Relate.version(Surrealdb_DateTime.fromString("2024-01-02T03:04:05Z"))
+      ->Surrealdb_Relate.json
+      ->Surrealdb_Relate.compile
+
+    t->Vitest.expect((
+      createCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      createCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+      deleteCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      deleteCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+      insertCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      insertCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+      updateCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      updateCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+      upsertCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      upsertCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+      relateCompiled->Surrealdb_BoundQuery.query->normalizeBindSlots,
+      relateCompiled->Surrealdb_BoundQuery.bindings->Dict.toArray->Array.length,
+    ))->Vitest.Expect.toEqual((
+      "CREATE ONLY $bind__ PATCH $bind__ RETURN AFTER",
+      2,
+      "DELETE $bind__ RETURN BEFORE",
+      1,
+      "INSERT RELATION IGNORE INTO $bind__ $bind__ RETURN AFTER",
+      2,
+      "UPDATE $bind__ PATCH $bind__ WHERE status = $bind__ RETURN AFTER",
+      3,
+      "UPSERT ONLY $bind__ PATCH $bind__ WHERE status = $bind__ RETURN AFTER",
+      3,
+      "RELATE  ONLY $bind__ CONTENT $bind__ RETURN AFTER VERSION $bind__",
+      5,
+    ))
+  })
+
+  Vitest.testAsync("mutation builders resolve and stream through the live server path", async t => {
+    let db = Surrealdb_Surreal.make()
+    let tableName = "mutation_coverage"
+    let edgeTableName = "related_to_coverage"
+    let table = Surrealdb_Table.make(tableName)
+    let edgeTable = Surrealdb_Table.make(edgeTableName)
+    let recordId = Surrealdb_RecordId.make(tableName, "alpha")
+    let otherRecordId = Surrealdb_RecordId.make(tableName, "beta")
+    let data =
+      Dict.fromArray([
+        ("label", Surrealdb_JsValue.string("alpha")),
+        ("count", Surrealdb_JsValue.int(3)),
+      ])
+    try {
+      await connectServerDatabase(db)
+      await removeTableIgnore(db, tableName)
+      await removeTableIgnore(db, edgeTableName)
+      ignore(await db->Surrealdb_Query.runText(`DEFINE TABLE ${tableName} SCHEMALESS;`))
+      ignore(await db->Surrealdb_Query.runText(`DEFINE TABLE ${edgeTableName} TYPE RELATION SCHEMALESS;`))
+
+      let createResolved =
+        await db
+        ->Surrealdb_Create.fromTable(table)
+        ->Surrealdb_Create.content(data)
+        ->Surrealdb_Create.resolve
+      let createStream =
+        await db
+        ->Surrealdb_Create.fromTable(table)
+        ->Surrealdb_Create.content(data)
+        ->Surrealdb_Create.stream
+        ->Surrealdb_AsyncIterable.collect
+      let updateResolved =
+        await db
+        ->Surrealdb_Update.fromTable(table)
+        ->Surrealdb_Update.content(data)
+        ->Surrealdb_Update.where(Surrealdb_Expr.eq("label", Surrealdb_JsValue.string("alpha")))
+        ->Surrealdb_Update.resolve
+      let deleteResolved =
+        await db
+        ->Surrealdb_Delete.fromTable(table)
+        ->Surrealdb_Delete.resolve
+      let upsertResolved =
+        await db
+        ->Surrealdb_Upsert.fromTable(table)
+        ->Surrealdb_Upsert.content(data)
+        ->Surrealdb_Upsert.resolve
+      let relateResolved =
+        await db
+        ->Surrealdb_Relate.records(
+            recordId,
+            edgeTable,
+            otherRecordId,
+            ~data=data,
+            (),
+          )
+        ->Surrealdb_Relate.resolve
+      let relateStream =
+        await db
+        ->Surrealdb_Relate.recordArrays(
+            [recordId],
+            edgeTable,
+            [otherRecordId],
+            ~data=data,
+            (),
+          )
+        ->Surrealdb_Relate.stream
+        ->Surrealdb_AsyncIterable.collect
+
+      t->Vitest.expect((
+        firstObjectFieldText(createResolved, "label"),
+        firstObjectFieldText(createResolved, "count"),
+        createStream->Array.length,
+        createStream->Array.get(0)->Option.map(Surrealdb_QueryFrame.query),
+        createStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="label")),
+        createStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="count")),
+        createStream->Array.get(1)->Option.flatMap(frameDoneType),
+        arrayObjectFieldTexts(updateResolved, "label"),
+        arrayObjectFieldTexts(updateResolved, "count"),
+        arrayObjectFieldTexts(deleteResolved, "label"),
+        arrayObjectFieldTexts(deleteResolved, "count"),
+        firstObjectFieldText(upsertResolved, "label"),
+        firstObjectFieldText(upsertResolved, "count"),
+        objectFieldText(relateResolved, "label"),
+        objectFieldText(relateResolved, "count"),
+        objectFieldText(relateResolved, "in"),
+        objectFieldText(relateResolved, "out"),
+        relateStream->Array.length,
+        relateStream->Array.get(0)->Option.map(Surrealdb_QueryFrame.query),
+        relateStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="label")),
+        relateStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="count")),
+        relateStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="in")),
+        relateStream->Array.get(0)->Option.flatMap(frame => frameObjectFieldText(~frame, ~fieldName="out")),
+        relateStream->Array.get(1)->Option.flatMap(frameDoneType),
+      ))->Vitest.Expect.toEqual((
+        Some("alpha"),
+        Some("3"),
+        2,
+        Some(0),
+        Some("alpha"),
+        Some("3"),
+        Some(Surrealdb_QueryType.Other),
+        [Some("alpha"), Some("alpha")],
+        [Some("3"), Some("3")],
+        [Some("alpha"), Some("alpha")],
+        [Some("3"), Some("3")],
+        Some("alpha"),
+        Some("3"),
+        Some("alpha"),
+        Some("3"),
+        Some("mutation_coverage:alpha"),
+        Some("mutation_coverage:beta"),
+        2,
+        Some(0),
+        Some("alpha"),
+        Some("3"),
+        Some("mutation_coverage:alpha"),
+        Some("mutation_coverage:beta"),
+        Some(Surrealdb_QueryType.Other),
+      ))
+
+      await removeTableIgnore(db, tableName)
+      await removeTableIgnore(db, edgeTableName)
+      await closeIgnore(db)
+    } catch {
+    | error =>
+      await removeTableIgnore(db, tableName)
+      await removeTableIgnore(db, edgeTableName)
       await closeIgnore(db)
       throw(error)
     }

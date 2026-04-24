@@ -6,7 +6,7 @@ This file is the active release gate for `rescript-surrealdb`.
 
 The 2026-04-23 soundness pass closed the original four blocker rows.
 
-The 2026-04-24 timeout and `health()` blocker rows are now closed by narrowing the unsupported public contract instead of continuing to ship broken forwarded helpers.
+The 2026-04-24 timeout and `health()` blocker rows are now closed by narrowing the unsupported public contract instead of continuing to ship broken forwarded methods.
 
 Current remaining release gate outside those rows:
 
@@ -38,7 +38,7 @@ Current remaining release gate outside those rows:
   - `RangeBound` constructor input is now a closed recursive supported subset instead of a raw `unknown` or a broader classifier type
   - `RecordId.idValue` now exposes the supported recursive subset and returns `option<idValue>` for the intentionally unsupported remainder
   - codec boundaries remain explicitly open only where the upstream contract is genuinely dynamic
-  - direct boundary tests now exercise the remaining open boundaries without package-local `%identity` helpers standing in for the public call shape
+  - direct boundary tests now exercise the remaining open boundaries without package-local `%identity` cast functions standing in for the public call shape
 
 ## Blocker 4: Compound `RecordId.idValue` Fidelity Is Still Only Partially Proved
 
@@ -53,7 +53,7 @@ Current remaining release gate outside those rows:
 
 The next release is blocked until every open row below is closed in code, docs, and tests.
 
-### Blocker 5: Timeout helpers currently prove and ship broken SurrealQL
+### Blocker 5: Timeout methods currently prove and ship broken SurrealQL
 
 - status: CLOSED on 2026-04-24
 - closure:
@@ -65,7 +65,7 @@ The next release is blocked until every open row below is closed in code, docs, 
   - `Surrealdb_Insert.timeout`
   - `Surrealdb_Relate.timeout`
   - were removed from the public binding surface in both `.resi` and generated `.mjs`
-  - `tests/query/SurrealdbPromiseConfig_test.res` now proves the remaining supported builder configuration path and proves the timeout helpers are absent from the published binding files
+  - `tests/query/SurrealdbPromiseConfig_test.res` now proves the remaining supported builder configuration path and proves the timeout methods are absent from the published binding files
   - `tests/connection/SurrealdbSessionSurface_test.res` now proves explicit raw SurrealQL with `TIMEOUT` still works on the supported `Query.text` path against the exercised server
 
 ### Blocker 6: `health()` on the supported `ws/rpc` path currently ships as a known failing surface

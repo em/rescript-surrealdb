@@ -8,7 +8,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
 
 - subsystem: public value, live, error, and API boundaries
 - change: replace fake public generics with explicit open boundaries, add direct tests at the remaining weak spots, and correct numeric edge classification in `Surrealdb_Value.fromUnknown`
-- boundary class: runtime classifier boundaries, optional-field boundaries, fulfillment-helper boundaries, package fidelity gaps
+- boundary class: runtime classifier boundaries, optional-field boundaries, limited-fulfillment boundaries, package fidelity gaps
 - exact public surface affected:
   - `src/errors/Surrealdb_ClientError.resi`
   - `src/live/Surrealdb_Frame.resi`
@@ -51,7 +51,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
   - emitted JS now uses `raw >= -2147483648.0 && raw <= 2147483647.0` for integer recovery
   - `LiveMessage.value` is a direct `Surrealdb_Value.fromUnknown(message.value)` classification
   - `ApiResponse.body`, `headers`, and `status` all compile to `fromNullable(...)` accessors
-  - `ApiPromise.then_` remains a direct `prim.then(prim1)` fulfillment helper
+  - `ApiPromise.then_` remains a direct `prim.then(prim1)` fulfillment API
 
 ## Local Representation
 
@@ -73,7 +73,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
   - `RangeBound.included` and `excluded` accept `unknown`
   - `Value.fromUnknown` preserves int boundaries honestly
   - `ApiResponse` optional fields stay optional and classify `body` through `Surrealdb_Value`
-  - `ApiPromise.then_` stays documented as a fulfillment-preserving helper rather than a full Promise abstraction
+  - `ApiPromise.then_` stays documented as a fulfillment-preserving API rather than a full Promise abstraction
 
 ## Alternatives Considered
 
@@ -84,7 +84,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
 
 ### Alternative 2
 
-- representation: widen everything to `unknown` and drop the typed wrappers entirely
+- representation: widen everything to `unknown` and drop the typed APIs entirely
 - why rejected: the SDK does prove several boundaries at runtime, and the binding already has direct classifiers for values, errors, live messages, engines, and API responses.
 
 ## Adversarial Questions
@@ -93,7 +93,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
 - evidence-based answer: yes, but the old `'a` was fake precision. The runtime constructor accepts an arbitrary JS value, and ReScript cannot recover that caller-chosen type later.
 
 - question: is `ApiPromise.then_` still narrower than the upstream Promise-like surface
-- evidence-based answer: yes. The full overload set remains a documented fidelity gap in `docs/TYPE_FIDELITY.md`. The public helper is intentionally limited to the common fulfillment-preserving path.
+- evidence-based answer: yes. The full overload set remains a documented fidelity gap in `docs/TYPE_FIDELITY.md`. The public API is intentionally limited to the common fulfillment-preserving path.
 
 - question: does `Jsonify.value` still rely on the SDK contract
 - evidence-based answer: yes. The binding still trusts the SDK to return JSON-compatible data, but the direct test now verifies nested SDK values stringify and parse back correctly on the installed version.
@@ -154,7 +154,7 @@ The later `RangeBound`, promise-output, JSON-state, and consumer-proof design no
   - `Live / event payload boundary`
   - `Connection / engine subtype casts`
   - `API / optional response fields`
-  - `API / ApiPromise.then_ fulfillment helper`
+  - `API / ApiPromise.then_ limited fulfillment API`
   - `Support / Jsonify unknown-to-JSON cast`
 - update made: removed the remaining `weak` and `missing` rows by either tightening the public surface or adding a direct boundary test
 
