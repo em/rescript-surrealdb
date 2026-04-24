@@ -1,11 +1,13 @@
 export default {
   test: {
-    include: ["tests/**/*.mjs"],
+    include: ["tests/**/*_test.mjs"],
     exclude: [
-      "tests/TestRuntime.mjs",
       "tests/SurrealdbTestContext.mjs",
       "tests/support/**",
       "tests/connection/**",
+      "tests/api/SurrealdbApiCompileSurface_test.mjs",
+      "tests/query/SurrealdbOperationCoverage_test.mjs",
+      "tests/live/SurrealdbLiveSurface_test.mjs",
     ],
     environment: "node",
     fileParallelism: false,

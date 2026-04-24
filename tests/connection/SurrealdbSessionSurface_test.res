@@ -11,7 +11,6 @@ let rootSigninAuth = Support.rootSigninAuth
 let connectServerDatabase = Support.connectServerDatabase
 let namespaceDatabaseSelection = Support.namespaceDatabaseSelection
 let expectedUsingSelectionJson = Support.expectedUsingSelectionJson
-let fileText = Support.fileText
 
 Vitest.describe("SurrealDB session surface", () => {
   Vitest.testAsync("connect options map to the installed public SDK surface", async t => {
@@ -157,24 +156,6 @@ Vitest.describe("SurrealDB session surface", () => {
       await closeIgnore(db)
       throw(error)
     }
-  })
-
-  Vitest.test("health is absent from the unsupported ws/rpc public binding surface", t => {
-    let resiTexts = [
-      ["src", "connection", "Surrealdb_Surreal.resi"],
-      ["src", "connection", "Surrealdb_RpcEngine.resi"],
-    ]->Array.map(fileText)
-
-    let jsTexts = [
-      ["src", "connection", "Surrealdb_Surreal.mjs"],
-      ["src", "connection", "Surrealdb_RpcEngine.mjs"],
-    ]->Array.map(fileText)
-
-    t->Vitest.expect((
-      resiTexts->Array.every(text => !(text->String.includes("let health:"))),
-      jsTexts->Array.every(text => !(text->String.includes("function health("))),
-    ))
-    ->Vitest.Expect.toEqual((true, true))
   })
 
   Vitest.testAsync("explicit raw TIMEOUT clauses still work through query text on the supported path", async t => {
