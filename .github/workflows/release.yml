@@ -26,9 +26,18 @@ jobs:
       - run: npm run build
       - run: npm run test:unit
 
+      # Source: https://github.com/changesets/changesets/blob/main/docs/command-line-options.md
+      # changeset version: consumes pending changeset files, bumps package.json, generates changelog
+      # changeset tag: creates git tags for current versions WITHOUT publishing (used when a different publish tool handles npm)
+      # changeset publish: publishes AND creates git tags, but does not support --provenance flag
+      # This workflow uses changeset tag + custom release:ci (npm publish --provenance) to get both git tags and trusted publishing provenance.
+      # Source: https://docs.npmjs.com/trusted-publishers/ — trusted publishing requires id-token: write and --provenance flag
+      # Source: https://github.com/changesets/changesets/issues/1575 — changeset status exit code is unreliable for detecting pending changesets
       - name: Version and publish if changesets exist
         run: |
-          if npx changeset status 2>&1 | grep -q "All changesets have been used"; then
+          # Check for pending changeset files (not changeset status which has unreliable exit codes)
+          CHANGESET_FILES=$(ls .changeset/*.md 2>/dev/null | grep -v README.md | head -1)
+          if [ -z "$CHANGESET_FILES" ]; then
             echo "No pending changesets. Skipping."
             exit 0
           fi
@@ -37,9 +46,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "Version packages"
-          git push
-          git tag "v$(node -p 'require("./package.json").version')"
-          git push --tags
+          # changeset tag creates git tags for current package versions without publishing
+          npx changeset tag
+          git push --follow-tags
+          # release:ci handles npm publish with --provenance for trusted publishing
           npm run release:ci
+          # Create GitHub Release with auto-generated notes
+          # Source: https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
+          VERSION="$(node -p 'require("./package.json").version')"
+          gh release create "v${VERSION}" --title "v${VERSION}" --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
