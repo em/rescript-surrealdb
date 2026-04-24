@@ -8,12 +8,22 @@ The 2026-04-23 soundness pass closed the original four blocker rows.
 
 The 2026-04-24 timeout and `health()` blocker rows are now closed by narrowing the unsupported public contract instead of continuing to ship broken forwarded methods.
 
-Current remaining release gate outside those rows:
+The 2026-04-25 test-surface and coverage pass closed the remaining repo-owned release gate.
+
+Current repo-owned release gate:
 
 - `npm run build` passes
-- `npm test` still fails the enforced global 80% coverage threshold
-  - current global coverage from `npm test`: 59.62% statements, 55.1% functions, 59.62% lines
-- current narrowing audit: `docs/audits/query-timeout-and-health-runtime.md`
+- `npm test` passes
+  - 22 Vitest files passed
+  - 85 Vitest tests passed
+  - enforced global coverage gate passed:
+    - 83.16% statements
+    - 91.18% branches
+    - 80.25% functions
+    - 83.16% lines
+- current release-closing audits:
+  - `docs/audits/query-timeout-and-health-runtime.md`
+  - `docs/audits/test-surface-and-coverage-quality.md`
 
 ## Blocker 1: Promise Builders Still Blur Input And Resolved Output Domains
 
@@ -51,7 +61,7 @@ Current remaining release gate outside those rows:
 
 ## Release Rule
 
-The next release is blocked until every open row below is closed in code, docs, and tests.
+Any future open row below blocks the next release until it is closed in code, docs, and tests.
 
 ### Blocker 5: Timeout methods currently prove and ship broken SurrealQL
 

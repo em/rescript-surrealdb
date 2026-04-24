@@ -2,14 +2,20 @@
 
 ## Status
 
-- Build: **PARTIAL**
+- Build: **PASSING**
   - `npm run build`
     - passing
   - `npm test`
-    - Vitest suites passing
-    - enforced 80% global coverage gate failing
-- Current release-closing audit:
+    - 22 Vitest files passing
+    - 85 Vitest tests passing
+    - enforced 80% global coverage gate passing:
+      - 83.16% statements
+      - 91.18% branches
+      - 80.25% functions
+      - 83.16% lines
+- Current release-closing audits:
   - `docs/audits/query-timeout-and-health-runtime.md`
+  - `docs/audits/test-surface-and-coverage-quality.md`
 - Historical audits kept for trace:
   - `docs/audits/bootstrap-soundness-repair.md`
   - `docs/audits/bootstrap-public-boundary-failures.md`

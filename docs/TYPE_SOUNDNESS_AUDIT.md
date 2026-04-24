@@ -2,18 +2,19 @@
 
 ## Build Status
 
-**BUILD PASSING. TEST GATE FAILING ON COVERAGE.**
+**BUILD PASSING. TEST GATE PASSING.**
 
-Verification run on 2026-04-24:
+Verification run on 2026-04-25:
 
 - `npm run build`
 - `npm test`
-  - all 9 Vitest files passed
-  - all 61 Vitest tests passed
-  - enforced global coverage gate still failed:
-    - 59.62% statements
-    - 55.1% functions
-    - 59.62% lines
+  - all 22 Vitest files passed
+  - all 85 Vitest tests passed
+  - enforced global coverage gate passed:
+    - 83.16% statements
+    - 91.18% branches
+    - 80.25% functions
+    - 83.16% lines
 
 Build health is necessary and insufficient. The current soundness verdict also depends on direct boundary tests and direct runtime probes inside this repo.
 
@@ -22,10 +23,10 @@ Build health is necessary and insufficient. The current soundness verdict also d
 | Metric | Count |
 |--------|-------|
 | Public `unknown` lines in `.resi` files | 121 |
-| `%identity` in `.res` files | 208 |
+| `%identity` in `.res` files | 218 |
 | `Obj.magic` | 0 |
 | `%raw` | 0 |
-| Public `*Raw` APIs | 68 |
+| Public `*Raw` APIs | 61 |
 
 ## `%identity` Summary
 
@@ -113,4 +114,4 @@ No current public `%identity` site manufactures a more precise public type than 
 
 The timeout and `health()` runtime-support blockers are closed by narrowing the public contract.
 
-The current release verdict is still not green because `npm test` fails the enforced global 80% coverage threshold. The remaining fidelity gaps above stay documented, and the package must not claim a passing release state until that test gate is satisfied.
+The current repo-owned validation verdict is green because `npm run build` and `npm test` both pass, and the enforced global 80% coverage threshold is now satisfied. The remaining fidelity gaps above stay documented as intentional open boundaries or narrower supported subsets rather than open release blockers.

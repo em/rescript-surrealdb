@@ -1,4 +1,14 @@
 > Historical contaminated audit. References below to consumer proof are rejected and non-authoritative. Current authority is direct repo-owned `npm test` / Vitest evidence for the binding surface.
+>
+> Current authoritative verification on 2026-04-25:
+> - `npm run build`: passing
+> - `npm test`: passing
+>   - 22 Vitest files
+>   - 85 Vitest tests
+>   - 83.16% statements
+>   - 91.18% branches
+>   - 80.25% functions
+>   - 83.16% lines
 
 # Test Surface And Coverage Quality Audit
 
@@ -15,7 +25,7 @@ It focuses on:
 - package-local `%identity` and `unknown` cast functions in tests
 - whether the current coverage gate is strong enough to catch public-surface fraud
 
-## Current Workspace State
+## Historical Workspace State On 2026-04-23
 
 - `npm run build`: failing
 - `npm test`: failing because the package does not currently build
