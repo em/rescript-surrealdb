@@ -1,16 +1,5 @@
 import {spawnSync} from "node:child_process"
 
-const errors = []
-
-if (process.env.GITHUB_ACTIONS !== "true") {
-  errors.push("version-packages may only run inside GitHub Actions.")
-}
-
-if (errors.length > 0) {
-  console.error(errors.join("\n"))
-  process.exit(1)
-}
-
 const commands = [
   {
     command: process.platform === "win32" ? "npx.cmd" : "npx",

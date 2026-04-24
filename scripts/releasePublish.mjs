@@ -36,7 +36,9 @@ if (publishedVersion.status === 0) {
       console.log(`${packageJson.name}@${packageJson.version} is already published. Skipping publish.`)
       process.exit(0)
     }
-  } catch {
+  } catch (parseError) {
+    console.error(`Failed to parse npm view output: ${publishedVersion.stdout}`)
+    process.exit(1)
   }
 }
 
