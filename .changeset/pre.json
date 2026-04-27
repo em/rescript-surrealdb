@@ -5,6 +5,7 @@
     "rescript-surrealdb": "0.0.1-alpha.0"
   },
   "changesets": [
-    "alpha-version-correction"
+    "alpha-version-correction",
+    "dev-dependency-boundaries"
   ]
 }
